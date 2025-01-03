@@ -1,54 +1,49 @@
-// Importing from rxdb/plugins/replication-graphql would be used in production
-// For tests, we'll mock this function
-const replicateGraphQL = (_config: ReplicationConfig) => {
-  return {
-    start: () => Promise.resolve(),
-    stop: () => Promise.resolve(),
-    reSync: () => Promise.resolve(),
-  };
-};
-
-interface ReplicationConfig {
-  collection: RxCollection<HistoryEntry>;
-  url: GraphQLServerUrl;
-  push: {
-    batchSize: number;
-    queryBuilder: (docs: RxReplicationWriteToMasterRow<HistoryEntry>[]) => {
-      query: string;
-      variables: { entries: RxReplicationWriteToMasterRow<HistoryEntry>[] };
-    };
-  };
-  pull: {
-    queryBuilder: (lastId: string | null | undefined) => {
-      query: string;
-      variables: { lastId: string | null | undefined };
-    };
-  };
-}
-
-interface RxDatabase {
-  history: RxCollection<HistoryEntry>;
-  name: string;
-  token: string;
-  storage: Record<string, unknown>;
-  instanceCreationOptions: Record<string, unknown>;
-  addCollections: (collections: Record<string, unknown>) => Promise<Record<string, unknown>>;
-}
-
-interface RxCollection<T> {
-  insert: (doc: T) => Promise<Record<string, unknown>>;
+// Database interfaces
+interface DatabaseCollection<T> {
+  insert: (doc: T) => Promise<T>;
   find: () => { exec: () => Promise<T[]> };
 }
 
-interface RxReplicationWriteToMasterRow<T> {
-  newDocumentState: T;
+interface Replication {
+  start: () => Promise<void>;
+  stop: () => Promise<void>;
+  reSync: () => Promise<void>;
 }
 
-type GraphQLServerUrl = {
-  http: string;
-};
+export interface Database {
+  history: DatabaseCollection<HistoryEntry>;
+  remove: () => Promise<void>;
+  setupSync?: (url: string) => Promise<Replication>;
+}
 
+// Mock implementation for testing
+class MockDatabase implements Database {
+  private entries: HistoryEntry[] = [];
 
+  history: DatabaseCollection<HistoryEntry> = {
+    insert: async (doc: HistoryEntry) => {
+      this.entries.push(doc);
+      return doc;
+    },
+    find: () => ({
+      exec: async () => this.entries
+    })
+  };
+
+  async remove() {
+    this.entries = [];
+  }
+
+  async setupSync(_url: string): Promise<Replication> {
+    return {
+      start: () => Promise.resolve(),
+      stop: () => Promise.resolve(),
+      reSync: () => Promise.resolve()
+    };
+  }
+}
+
+const isTest = process.env.NODE_ENV === 'test';
 
 
 
@@ -85,38 +80,88 @@ const historySchema = {
   required: ['id', 'url', 'timestamp', 'deviceId']
 };
 
-export type HistoryCollection = RxCollection<HistoryEntry>;
-
-let dbPromise: Promise<RxDatabase> | null = null;
+let dbInstance: Database | null = null;
 
 export const getDatabase = async () => {
-  if (!dbPromise) {
-    dbPromise = Promise.resolve({
-      history: {
-        insert: jest.fn().mockResolvedValue({}),
-        find: jest.fn().mockReturnValue({
-          exec: jest.fn().mockResolvedValue([])
-        })
-      },
-      name: 'test-db',
-      token: 'test-token',
-      storage: {} as RxDatabase['storage'],
-      instanceCreationOptions: {},
-      addCollections: jest.fn()
-    } as unknown as RxDatabase);
+  if (!dbInstance) {
+    if (isTest) {
+      dbInstance = new MockDatabase();
+    } else {
+      // In production, we'll use RxDB
+      const { createRxDatabase, addRxPlugin } = await import('rxdb/dist/cjs/index.js');
+      const { getRxStorageDexie } = await import('rxdb/dist/cjs/plugins/storage-dexie/index.js');
+      const { RxDBDevModePlugin } = await import('rxdb/dist/cjs/plugins/dev-mode/index.js');
 
-    const db = await dbPromise;
-    await db.addCollections({
-      history: {
-        schema: historySchema
-      }
-    });
+      addRxPlugin(RxDBDevModePlugin);
+
+      const rxDatabase = await createRxDatabase<HistoryEntry>({
+        name: 'chronicledb',
+        storage: getRxStorageDexie(),
+      });
+
+      await rxDatabase.addCollections({
+        history: {
+          schema: historySchema
+        }
+      });
+
+      dbInstance = {
+        history: rxDatabase.history,
+        remove: () => rxDatabase.remove(),
+        setupSync: async (url: string) => {
+          const { replicateGraphQL } = await import('rxdb/dist/cjs/plugins/replication-graphql/index.js');
+          const replication = await replicateGraphQL({
+            collection: rxDatabase.history,
+            url: { http: url },
+            push: {
+              batchSize: 50,
+              queryBuilder: (docs: HistoryEntry[]) => ({
+                query: `
+                  mutation InsertHistoryEntries($entries: [HistoryEntry!]!) {
+                    insertHistoryEntries(entries: $entries)
+                  }
+                `,
+                variables: {
+                  entries: docs
+                }
+              })
+            },
+            pull: {
+              queryBuilder: (lastId: string | null | undefined) => ({
+                query: `
+                  query GetHistoryEntries($lastId: String) {
+                    historyEntries(lastId: $lastId) {
+                      id
+                      url
+                      title
+                      timestamp
+                      deviceId
+                    }
+                  }
+                `,
+                variables: {
+                  lastId
+                }
+              })
+            }
+          });
+          return {
+            start: () => replication.start(),
+            stop: () => replication.cancel(),
+            reSync: () => replication.reSync()
+          };
+        }
+      };
+    }
   }
-  return dbPromise;
+  return dbInstance;
 };
 
 export const addHistoryEntry = async (entry: Omit<HistoryEntry, 'id'>) => {
   const db = await getDatabase();
+  if (!db) {
+    throw new Error('Failed to initialize database');
+  }
   const id = `${entry.deviceId}-${entry.timestamp}`;
   await db.history.insert({
     ...entry,
@@ -126,39 +171,11 @@ export const addHistoryEntry = async (entry: Omit<HistoryEntry, 'id'>) => {
 
 export const setupSync = async (syncUrl: string) => {
   const db = await getDatabase();
-  return replicateGraphQL({
-    collection: db.history,
-    url: { http: syncUrl } as GraphQLServerUrl,
-    push: {
-      batchSize: 50,
-      queryBuilder: (docs: RxReplicationWriteToMasterRow<HistoryEntry>[]) => ({
-        query: `
-          mutation InsertHistoryEntries($entries: [HistoryEntry!]!) {
-            insertHistoryEntries(entries: $entries)
-          }
-        `,
-        variables: {
-          entries: docs
-        }
-      })
-    },
-    pull: {
-      queryBuilder: (lastId: string | null | undefined) => ({
-        query: `
-          query GetHistoryEntries($lastId: String) {
-            historyEntries(lastId: $lastId) {
-              id
-              url
-              title
-              timestamp
-              deviceId
-            }
-          }
-        `,
-        variables: {
-          lastId
-        }
-      })
-    }
-  });
+  if (!db) {
+    throw new Error('Failed to initialize database');
+  }
+  if (!db.setupSync) {
+    throw new Error('Database does not support sync');
+  }
+  return db.setupSync(syncUrl);
 };

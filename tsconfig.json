@@ -23,7 +23,8 @@
   "include": [
     "packages/*/src/**/*",
     "apps/*/src/**/*",
-    "src/types/**/*"
+    "src/types/**/*",
+    "packages/*/src/types/**/*"
   ],
   "exclude": ["node_modules"]
 }

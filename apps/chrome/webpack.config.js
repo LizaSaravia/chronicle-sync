@@ -21,7 +21,10 @@ module.exports = {
     ]
   },
   resolve: {
-    extensions: ['.tsx', '.ts', '.js']
+    extensions: ['.tsx', '.ts', '.js'],
+    alias: {
+      '@chronicle-sync/sync': path.resolve(__dirname, '../../packages/sync')
+    }
   },
   plugins: [
     new CopyPlugin({

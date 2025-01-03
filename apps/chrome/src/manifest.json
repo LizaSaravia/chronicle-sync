@@ -9,7 +9,8 @@
     "tabs"
   ],
   "host_permissions": [
-    "https://*.chronicle-sync.com/*"
+    "https://*.chronicle-sync.dev/*",
+    "wss://*.chronicle-sync.dev/*"
   ],
   "background": {
     "service_worker": "background.js"

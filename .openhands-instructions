@@ -31,3 +31,27 @@
 - Jest is used for testing (see jest.config.js)
 - E2E tests configuration in jest.e2e.config.js
 - Run appropriate test suite before submitting changes
+
+## Sync Functionality
+1. Password-Based Sync:
+   - All sync operations require a password
+   - Password used for encryption and sync group identification
+   - Never store passwords on server
+
+2. Offline Support:
+   - Extensions work offline by default
+   - Changes queued locally when offline
+   - Auto-sync every 5 minutes when online
+   - Manual sync available via API
+
+3. Security Requirements:
+   - All data must be encrypted before transmission
+   - Use AES encryption with password
+   - No plaintext data in storage/transit
+   - Separate sync groups by password
+
+4. Testing Sync Changes:
+   - Test offline behavior
+   - Verify password changes
+   - Check cross-platform sync
+   - Validate encryption

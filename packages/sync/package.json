@@ -1,0 +1,19 @@
+{
+  "name": "@chronicle-sync/sync",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest"
+  },
+  "dependencies": {
+    "crypto-js": "^4.2.0",
+    "isomorphic-ws": "^5.0.0",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/crypto-js": "^4.2.1"
+  }
+}

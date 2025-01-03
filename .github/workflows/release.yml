@@ -1,67 +1,201 @@
 name: Release
 
 on:
+  # Staging deployments
+  push:
+    branches: [ staging ]
+  
+  # Production deployments
   release:
-    types: [created]
+    types: [ published ]
 
 jobs:
-  build-and-release:
+  deploy:
     runs-on: ubuntu-latest
+    
+    # Define environment based on trigger
+    environment: ${{ github.event_name == 'release' && 'production' || 'staging' }}
+    
     steps:
       - uses: actions/checkout@v4
+      
       - uses: actions/setup-node@v4
         with:
-          node-version-file: '.nvmrc'
+          node-version: 20
           cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build all packages
-        run: |
-          npm run build:chrome
-          npm run build:firefox
-          npm run build:web
-
-      - name: Create Chrome extension package
-        run: |
-          cd apps/chrome/dist
-          zip -r ../../../chronicle-sync-chrome.zip .
-
-      - name: Create Firefox extension package
-        run: |
-          cd apps/firefox/dist
-          zip -r ../../../chronicle-sync-firefox.zip .
-
-      - name: Upload Chrome extension
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./chronicle-sync-chrome.zip
-          asset_name: chronicle-sync-chrome.zip
-          asset_content_type: application/zip
-
-      - name: Upload Firefox extension
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./chronicle-sync-firefox.zip
-          asset_name: chronicle-sync-firefox.zip
-          asset_content_type: application/zip
-
+      
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: us-east-1
-
+      
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          mask-password: true
+      
+      - name: Configure ECR repository
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          # Create ECR repository if it doesn't exist
+          aws ecr describe-repositories --repository-names chronicle-sync || \
+            aws ecr create-repository \
+              --repository-name chronicle-sync \
+              --image-scanning-configuration scanOnPush=true
+      
+      - name: Set environment variables
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "SYNC_URL=https://sync.chronicle-sync.dev" >> $GITHUB_ENV
+            echo "VERSION=${{ github.event.release.tag_name }}" >> $GITHUB_ENV
+            echo "ENV_NAME=production" >> $GITHUB_ENV
+          else
+            echo "SYNC_URL=https://staging.chronicle-sync.dev" >> $GITHUB_ENV
+            echo "VERSION=0.0.0-beta.$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
+            echo "ENV_NAME=staging" >> $GITHUB_ENV
+          fi
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Configure ECR
+        env:
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+        run: |
+          # Create ECR repository if it doesn't exist
+          aws ecr describe-repositories --repository-names chronicle-sync || \
+            aws ecr create-repository \
+              --repository-name chronicle-sync \
+              --image-scanning-configuration scanOnPush=true
+          
+          # Get ECR login token and login
+          aws ecr get-login-password --region us-east-1 | \
+            docker login --username AWS --password-stdin $ECR_REGISTRY
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.login-ecr.outputs.registry }}/chronicle-sync:${{ env.VERSION }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Deploy backend
+        run: |
+          # Update ECS service
+          aws ecs update-service \
+            --cluster chronicle-sync-${{ env.ENV_NAME }} \
+            --service sync \
+            --force-new-deployment
+      
+      - name: Build extensions
+        run: |
+          # Update version and sync URL in manifests
+          jq --arg v "$VERSION" --arg u "$SYNC_URL" \
+            '.version = $v | .sync_url = $u' \
+            apps/chrome/src/manifest.json > tmp && mv tmp apps/chrome/src/manifest.json
+          jq --arg v "$VERSION" --arg u "$SYNC_URL" \
+            '.version = $v | .sync_url = $u' \
+            apps/firefox/src/manifest.json > tmp && mv tmp apps/firefox/src/manifest.json
+          
+          # Build extensions
+          npm ci
+          npm run build:packages
+          npm run build:chrome
+          npm run build:firefox
+          npm run build:web
+      
+      - name: Package extensions
+        run: |
+          cd apps/chrome/dist && zip -r ../../../chronicle-sync-chrome.zip .
+          cd ../../firefox/dist && zip -r ../../../chronicle-sync-firefox.zip .
+      
+      # For staging: Upload to extension store beta channels
+      - name: Upload to beta channels
+        if: github.event_name != 'release'
+        run: |
+          # Chrome Web Store Beta Channel
+          curl -H "Authorization: Bearer ${{ secrets.CHROME_STORE_TOKEN }}" \
+               -H "x-goog-api-version: 2" \
+               -X PUT -T chronicle-sync-chrome.zip \
+               https://www.googleapis.com/upload/chromewebstore/v1.1/items/${{ secrets.CHROME_STORE_ITEM_ID }}
+          
+          # Firefox Add-ons Beta Channel
+          web-ext sign \
+            --api-key=${{ secrets.AMO_JWT_ISSUER }} \
+            --api-secret=${{ secrets.AMO_JWT_SECRET }} \
+            --channel=beta
+      
+      # For production: Upload to GitHub release and main store channels
+      - name: Upload to stores
+        if: github.event_name == 'release'
+        run: |
+          # Upload to GitHub release
+          gh release upload ${{ github.event.release.tag_name }} \
+            chronicle-sync-chrome.zip \
+            chronicle-sync-firefox.zip
+          
+          # Chrome Web Store
+          curl -H "Authorization: Bearer ${{ secrets.CHROME_STORE_TOKEN }}" \
+               -H "x-goog-api-version: 2" \
+               -X PUT -T chronicle-sync-chrome.zip \
+               https://www.googleapis.com/upload/chromewebstore/v1.1/items/${{ secrets.CHROME_STORE_ITEM_ID }}
+          
+          # Firefox Add-ons
+          web-ext sign \
+            --api-key=${{ secrets.AMO_JWT_ISSUER }} \
+            --api-secret=${{ secrets.AMO_JWT_SECRET }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
       - name: Deploy web interface
         run: |
           cd apps/web
-          aws s3 sync dist/ s3://chronicle-sync-web/ --delete
-          aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
+          aws s3 sync dist/ s3://chronicle-sync-${{ env.ENV_NAME }}/ --delete
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
+      
+      - name: Notify deployment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const env = process.env.ENV_NAME;
+            const version = process.env.VERSION;
+            const url = process.env.SYNC_URL;
+            
+            const message = `🚀 Deployed to ${env}!\n\n` +
+              `- Version: ${version}\n` +
+              `- Backend: ${url}\n` +
+              `- Web Interface: https://app.chronicle-sync.dev\n` +
+              `- Extensions: ${env === 'staging' ? 'Available in beta channels' : 'Published to stores'}\n\n` +
+              `Monitor deployment status in [AWS Console](https://console.aws.amazon.com/ecs/home?region=us-east-1#/clusters/chronicle-sync-${env}/services/sync/events)`;
+            
+            if (context.eventName === 'release') {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.release.id,
+                body: message
+              });
+            } else {
+              const { data: pulls } = await github.rest.pulls.list({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                head: `${context.repo.owner}:${context.ref.replace('refs/heads/', '')}`,
+                state: 'open'
+              });
+              
+              if (pulls.length > 0) {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pulls[0].number,
+                  body: message
+                });
+              }
+            }

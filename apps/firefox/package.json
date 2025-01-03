@@ -8,7 +8,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@chronicle-sync/core": "0.1.0",
+    "@chronicle-sync/sync": "0.1.0",
     "webextension-polyfill": "^0.10.0"
   },
   "peerDependencies": {

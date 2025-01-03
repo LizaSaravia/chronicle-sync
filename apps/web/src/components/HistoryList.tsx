@@ -10,6 +10,9 @@ export function HistoryList() {
     async function loadEntries() {
       try {
         const db = await getDatabase();
+        if (!db) {
+          throw new Error('Failed to initialize database');
+        }
         const result = await db.history.find().exec();
         setEntries(result);
       } catch (error) {
