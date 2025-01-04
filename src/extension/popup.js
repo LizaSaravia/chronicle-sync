@@ -1,10 +1,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  const setupDiv = document.querySelector('.setup');
+  const notSetupDiv = document.querySelector('.not-setup');
   const historyDiv = document.querySelector('.history');
-  const setupForm = document.getElementById('setup-form');
   const setupBtn = document.getElementById('setup-btn');
-  const setupError = document.getElementById('setup-error');
-  const setupLoading = document.getElementById('setup-loading');
   const syncBtn = document.getElementById('sync-btn');
   const syncLoading = document.getElementById('sync-loading');
   const historyError = document.getElementById('history-error');
@@ -22,52 +19,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     const storage = await chrome.storage.local.get('initialized');
     if (storage.initialized) {
-      setupDiv.style.display = 'none';
+      notSetupDiv.style.display = 'none';
       historyDiv.style.display = 'block';
       await loadHistory();
     } else {
-      setupDiv.style.display = 'block';
+      notSetupDiv.style.display = 'block';
       historyDiv.style.display = 'none';
     }
   } catch (error) {
-    showError(setupError, 'Failed to check initialization status: ' + error.message);
+    showError(historyError, 'Failed to check initialization status: ' + error.message);
   }
 
-  // Setup form submit handler
-  setupForm.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    
-    const password = document.getElementById('password').value;
-    const confirmPassword = document.getElementById('confirm-password').value;
-
-    if (!password || password !== confirmPassword) {
-      showError(setupError, 'Passwords do not match or are empty');
-      return;
-    }
-
-    try {
-      setupBtn.disabled = true;
-      setupLoading.style.display = 'block';
-      setupError.style.display = 'none';
-
-      const response = await chrome.runtime.sendMessage({
-        type: 'INITIALIZE',
-        password
-      });
-
-      if (response.success) {
-        setupDiv.style.display = 'none';
-        historyDiv.style.display = 'block';
-        await loadHistory();
-      } else {
-        showError(setupError, 'Initialization failed: ' + response.error);
-      }
-    } catch (error) {
-      showError(setupError, 'Initialization failed: ' + error.message);
-    } finally {
-      setupBtn.disabled = false;
-      setupLoading.style.display = 'none';
-    }
+  // Setup button click handler - opens options page
+  setupBtn.addEventListener('click', () => {
+    chrome.runtime.openOptionsPage();
+    window.close();
   });
 
   // Force sync button click handler
