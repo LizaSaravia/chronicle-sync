@@ -14,15 +14,15 @@ CREATE TABLE IF NOT EXISTS devices (
 );
 `;
 
-export default {
-  async fetch(request, env, ctx) {
-    // Enable CORS
-    const corsHeaders = {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    };
+// CORS headers for all responses
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
 
+export default {
+  async fetch(request, env) {
     // Handle CORS preflight requests
     if (request.method === 'OPTIONS') {
       return new Response(null, {
