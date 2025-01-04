@@ -60,13 +60,26 @@ jobs:
         with:
           mask-password: true
       
-      # Build Docker image (always)
-      - name: Build and push Docker image
+      # Build Docker image (PR check)
+      - name: Build Docker image
+        if: env.SHOULD_DEPLOY != 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: ${{ env.SHOULD_DEPLOY == 'true' }}
-          tags: ${{ env.SHOULD_DEPLOY == 'true' && format('{0}/chronicle-sync:{1}', steps.login-ecr.outputs.registry, env.VERSION) || format('chronicle-sync:{0}', github.sha) }}
+          push: false
+          load: true
+          tags: chronicle-sync:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      # Build and push Docker image (staging/main)
+      - name: Build and push Docker image
+        if: env.SHOULD_DEPLOY == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.login-ecr.outputs.registry }}/chronicle-sync:${{ env.VERSION }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
       
