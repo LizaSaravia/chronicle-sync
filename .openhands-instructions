@@ -1,57 +1,62 @@
-# OpenHands Instructions
-
-## GitHub Actions Guidelines
-- Do not modify GitHub Actions workflow files directly
-- If workflow changes are needed, create new action files in the root directory
-- Focus on modifying the scripts that actions call instead of the actions themselves
+# OpenHands Development Guidelines
 
 ## Repository Structure
-- Main application code is in `/src`
-- Multiple app variants in `/apps` (web, mobile, chrome, firefox)
-- Core packages in `/packages/core`
-- Scripts for automation in `/scripts`
 
-## Development Guidelines
-1. When making code changes:
-   - Ensure proper test coverage
-   - Add tests in appropriate test directories
-   - Run tests to verify changes
+```
+.
+├── apps/           # Application variants
+│   ├── chrome/     # Chrome extension
+│   ├── firefox/    # Firefox extension
+│   └── web/        # Web interface
+├── docs/           # Documentation
+├── infrastructure/ # CI/CD and deployment
+│   └── ci/         # CI/CD scripts
+├── packages/       # Core packages
+│   └── core/       # Sync engine
+├── scripts/        # Development scripts
+└── src/           # Backend service
+```
 
-2. For configuration changes:
-   - No tests required for documentation or config files
-   - Maintain consistent formatting
-   - Follow existing patterns
+## Development Workflow
 
-3. Script Modifications:
-   - Scripts in `/scripts` can be modified as needed
-   - Ensure backward compatibility
-   - Add proper error handling
+1. **Code Changes**
+   - Write tests for new features
+   - Follow existing code patterns
+   - Run tests locally before committing
 
-## Testing
-- Jest is used for testing (see jest.config.js)
-- E2E tests configuration in jest.e2e.config.js
-- Run appropriate test suite before submitting changes
+2. **Documentation**
+   - Update relevant docs in /docs
+   - Keep README.md high-level
+   - Document technical details in /docs
 
-## Sync Functionality
-1. Password-Based Sync:
-   - All sync operations require a password
-   - Password used for encryption and sync group identification
-   - Never store passwords on server
+3. **CI/CD**
+   - CI runs on all PRs
+   - Staging deploys from staging branch
+   - Production deploys from main branch
 
-2. Offline Support:
-   - Extensions work offline by default
-   - Changes queued locally when offline
-   - Auto-sync every 5 minutes when online
-   - Manual sync available via API
+## Testing Guidelines
 
-3. Security Requirements:
-   - All data must be encrypted before transmission
-   - Use AES encryption with password
-   - No plaintext data in storage/transit
-   - Separate sync groups by password
+- Unit tests with Jest
+- E2E tests for critical flows
+- Test offline behavior
+- Verify cross-browser compatibility
 
-4. Testing Sync Changes:
-   - Test offline behavior
-   - Verify password changes
-   - Check cross-platform sync
-   - Validate encryption
+## Security Requirements
+
+- All data must be encrypted
+- Use password-based encryption
+- No plaintext storage
+- Validate all user input
+
+## Deployment Process
+
+1. Merge to staging for beta testing
+2. Beta testing in staging environment
+3. Merge to main for production
+4. Monitor deployment in AWS Console
+
+## Extension Publishing
+
+- Chrome Web Store deployment is automated
+- Firefox Add-ons deployment is automated
+- Version numbers follow semver
