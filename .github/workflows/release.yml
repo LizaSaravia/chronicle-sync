@@ -1,16 +1,45 @@
-name: Release Workflow
+name: CI/CD Workflow
 
 on:
   push:
     branches: [main, staging]
+  pull_request:
+    branches: [main, staging]
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    
-    # Define environment based on trigger
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build packages
+        run: npm run build:packages
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: chronicle-sync:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging')
+    runs-on: ubuntu-latest
     environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
-    
     steps:
       - uses: actions/checkout@v4
       
