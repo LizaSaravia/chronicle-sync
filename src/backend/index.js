@@ -16,6 +16,19 @@ CREATE TABLE IF NOT EXISTS devices (
 
 export default {
   async fetch(request, env, ctx) {
+    // Enable CORS
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    };
+
+    // Handle CORS preflight requests
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        headers: corsHeaders
+      });
+    }
     try {
       const url = new URL(request.url);
       const path = url.pathname;
@@ -38,11 +51,14 @@ export default {
         }
       }
 
-      return new Response('Not Found', { status: 404 });
+      return new Response('Not Found', { 
+        status: 404,
+        headers: corsHeaders
+      });
     } catch (error) {
       return new Response(JSON.stringify({ error: error.message }), {
         status: 500,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
   }
@@ -64,7 +80,7 @@ async function createSyncGroup(request, env) {
   ).bind(deviceId, groupId, timestamp).run();
 
   return new Response(JSON.stringify({ groupId }), {
-    headers: { 'Content-Type': 'application/json' }
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   });
 }
 
@@ -79,7 +95,7 @@ async function handleSync(request, env) {
   if (!group) {
     return new Response(JSON.stringify({ error: 'Group not found' }), {
       status: 404,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 
@@ -101,7 +117,7 @@ async function handleSync(request, env) {
   ).bind(timestamp, groupId).run();
 
   return new Response(JSON.stringify({ success: true }), {
-    headers: { 'Content-Type': 'application/json' }
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   });
 }
 
@@ -119,7 +135,7 @@ async function getUpdates(request, env) {
   if (!device) {
     return new Response(JSON.stringify({ error: 'Device not found in group' }), {
       status: 404,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 
@@ -127,7 +143,7 @@ async function getUpdates(request, env) {
   const latestSync = await env.SYNC_KV.get(`${groupId}:latest`);
   if (!latestSync || parseInt(latestSync) <= since) {
     return new Response(JSON.stringify({ updates: [] }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 
@@ -148,6 +164,6 @@ async function getUpdates(request, env) {
   );
 
   return new Response(JSON.stringify({ updates }), {
-    headers: { 'Content-Type': 'application/json' }
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   });
 }
