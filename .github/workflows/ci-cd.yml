@@ -61,7 +61,14 @@ jobs:
       - name: Build packages
         run: npm run build:packages
       
+      # Quick Docker syntax check for PRs
+      - name: Validate Dockerfile
+        if: env.SHOULD_DEPLOY != 'true'
+        run: docker run --rm -i hadolint/hadolint < Dockerfile
+      
+      # Only set up Docker and build image when deploying
       - name: Set up Docker Buildx
+        if: env.SHOULD_DEPLOY == 'true'
         uses: docker/setup-buildx-action@v3
       
       # Configure AWS and ECR only if deploying
@@ -80,17 +87,15 @@ jobs:
         with:
           mask-password: true
       
-      # Build Docker image with layer caching
-      - name: Build Docker image
+      # Build Docker image only when deploying
+      - name: Build and push Docker image
+        if: env.SHOULD_DEPLOY == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: ${{ env.SHOULD_DEPLOY == 'true' }}
-          load: ${{ env.SHOULD_DEPLOY != 'true' }}
-          tags: ${{ env.SHOULD_DEPLOY == 'true' && format('{0}/chronicle-sync:{1}', steps.login-ecr.outputs.registry, env.VERSION) || format('chronicle-sync:{0}', github.sha) }}
-          cache-from: |
-            type=gha
-            type=registry,ref=${{ steps.login-ecr.outputs.registry }}/chronicle-sync:cache
+          push: true
+          tags: ${{ format('{0}/chronicle-sync:{1}', steps.login-ecr.outputs.registry, env.VERSION) }}
+          cache-from: type=gha
           cache-to: type=gha,mode=max
       
       # Deploy steps only run on push to main/staging
