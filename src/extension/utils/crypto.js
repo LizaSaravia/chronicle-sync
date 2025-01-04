@@ -1,17 +1,9 @@
 import { enc, AES, PBKDF2, lib } from 'crypto-js';
 
-// Use Node.js crypto for generating random values in background script
+// Use Web Crypto API for generating random values
 function getRandomValues(count) {
-  // Check if we're in a background script (no window object)
-  if (typeof window === 'undefined') {
-    const array = new Uint8Array(count);
-    for (let i = 0; i < count; i++) {
-      array[i] = Math.floor(Math.random() * 256); // Simple random for now, could be improved
-    }
-    return array;
-  }
-  // In content script or popup, use the standard Web Crypto API
-  return window.crypto.getRandomValues(new Uint8Array(count));
+  // crypto is available globally in both window and service worker contexts
+  return crypto.getRandomValues(new Uint8Array(count));
 }
 
 // Override the crypto-js WordArray random generator
