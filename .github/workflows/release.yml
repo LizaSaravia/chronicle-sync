@@ -32,16 +32,6 @@ jobs:
         with:
           mask-password: true
       
-      - name: Configure ECR repository
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        run: |
-          # Create ECR repository if it doesn't exist
-          aws ecr describe-repositories --repository-names chronicle-sync || \
-            aws ecr create-repository \
-              --repository-name chronicle-sync \
-              --image-scanning-configuration scanOnPush=true
-      
       - name: Set environment variables
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
