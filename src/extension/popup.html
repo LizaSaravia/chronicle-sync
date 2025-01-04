@@ -40,9 +40,14 @@
       border: none;
       border-radius: 4px;
       cursor: pointer;
+      width: 100%;
     }
     button:hover {
       background-color: #3367d6;
+    }
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
     }
     input {
       width: 100%;
@@ -51,19 +56,47 @@
       border: 1px solid #ddd;
       border-radius: 4px;
     }
+    .error {
+      color: #d32f2f;
+      background-color: #ffebee;
+      padding: 8px;
+      margin: 8px 0;
+      border-radius: 4px;
+      display: none;
+    }
+    .loading {
+      display: none;
+      text-align: center;
+      margin: 8px 0;
+    }
+    .loading::after {
+      content: "...";
+      animation: dots 1s steps(5, end) infinite;
+    }
+    @keyframes dots {
+      0%, 20% { content: "."; }
+      40% { content: ".."; }
+      60%, 100% { content: "..."; }
+    }
   </style>
 </head>
 <body>
   <div class="setup">
     <h2>Welcome to Chronicle Sync</h2>
     <p>Enter a strong password to encrypt your browsing data:</p>
-    <input type="password" id="password" placeholder="Enter password">
-    <input type="password" id="confirm-password" placeholder="Confirm password">
-    <button id="setup-btn">Start Syncing</button>
+    <form id="setup-form" autocomplete="on">
+      <input type="password" id="password" name="password" placeholder="Enter password" autocomplete="new-password" required>
+      <input type="password" id="confirm-password" name="confirm-password" placeholder="Confirm password" autocomplete="new-password" required>
+      <div class="error" id="setup-error"></div>
+      <div class="loading" id="setup-loading">Initializing</div>
+      <button type="submit" id="setup-btn">Start Syncing</button>
+    </form>
   </div>
 
   <div class="history">
     <h2>Recent History</h2>
+    <div class="error" id="history-error"></div>
+    <div class="loading" id="sync-loading">Syncing</div>
     <button id="sync-btn">Force Sync</button>
     <div id="history-list"></div>
   </div>
