@@ -1,10 +1,6 @@
 name = "chronicle-sync"
-main = "src/backend/index.js"
+main = "dist-worker/worker.js"
 compatibility_date = "2023-12-01"
-
-[build]
-command = "npm run build:worker"
-watch_dir = "src/backend"
 
 [env.staging]
 name = "chronicle-sync-staging"
