@@ -1,11 +1,15 @@
 name: Release
 
 on:
+  # Production deployments
+  push:
+    branches: [ main ]
+  
   # Staging deployments
   push:
     branches: [ staging ]
   
-  # Production deployments
+  # Release deployments
   release:
     types: [ published ]
 
@@ -14,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     
     # Define environment based on trigger
-    environment: ${{ github.event_name == 'release' && 'production' || 'staging' }}
+    environment: ${{ (github.event_name == 'release' || github.ref == 'refs/heads/main') && 'production' || 'staging' }}
     
     steps:
       - uses: actions/checkout@v4
@@ -49,10 +53,17 @@ jobs:
       - name: Set environment variables
         run: |
           if [ "${{ github.event_name }}" = "release" ]; then
+            # Release deployment
             echo "SYNC_URL=https://sync.chronicle-sync.dev" >> $GITHUB_ENV
             echo "VERSION=${{ github.event.release.tag_name }}" >> $GITHUB_ENV
             echo "ENV_NAME=production" >> $GITHUB_ENV
+          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            # Main branch deployment
+            echo "SYNC_URL=https://sync.chronicle-sync.dev" >> $GITHUB_ENV
+            echo "VERSION=0.0.0-main.$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
+            echo "ENV_NAME=production" >> $GITHUB_ENV
           else
+            # Staging deployment
             echo "SYNC_URL=https://staging.chronicle-sync.dev" >> $GITHUB_ENV
             echo "VERSION=0.0.0-beta.$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
             echo "ENV_NAME=staging" >> $GITHUB_ENV
@@ -176,13 +187,24 @@ jobs:
               `Monitor deployment status in [AWS Console](https://console.aws.amazon.com/ecs/home?region=us-east-1#/clusters/chronicle-sync-${env}/services/sync/events)`;
             
             if (context.eventName === 'release') {
+              // Comment on the release
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.payload.release.id,
                 body: message
               });
+            } else if (context.ref === 'refs/heads/main') {
+              // Create a new issue for main branch deployment
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `Production Deployment - ${version}`,
+                body: message,
+                labels: ['deployment']
+              });
             } else {
+              // Comment on the PR for staging
               const { data: pulls } = await github.rest.pulls.list({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
