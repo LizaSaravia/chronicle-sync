@@ -8,17 +8,13 @@ on:
   # Staging deployments
   push:
     branches: [ staging ]
-  
-  # Release deployments
-  release:
-    types: [ published ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     
     # Define environment based on trigger
-    environment: ${{ (github.event_name == 'release' || github.ref == 'refs/heads/main') && 'production' || 'staging' }}
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
     
     steps:
       - uses: actions/checkout@v4
@@ -52,13 +48,8 @@ jobs:
       
       - name: Set environment variables
         run: |
-          if [ "${{ github.event_name }}" = "release" ]; then
-            # Release deployment
-            echo "SYNC_URL=https://sync.chronicle-sync.dev" >> $GITHUB_ENV
-            echo "VERSION=${{ github.event.release.tag_name }}" >> $GITHUB_ENV
-            echo "ENV_NAME=production" >> $GITHUB_ENV
-          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            # Main branch deployment
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            # Production deployment
             echo "SYNC_URL=https://sync.chronicle-sync.dev" >> $GITHUB_ENV
             echo "VERSION=0.0.0-main.$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
             echo "ENV_NAME=production" >> $GITHUB_ENV
@@ -125,43 +116,31 @@ jobs:
           cd apps/chrome/dist && zip -r ../../../chronicle-sync-chrome.zip .
           cd ../../firefox/dist && zip -r ../../../chronicle-sync-firefox.zip .
       
-      # For staging: Upload to extension store beta channels
-      - name: Upload to beta channels
-        if: github.event_name != 'release'
+      # Upload extensions to stores
+      - name: Upload extensions
         run: |
-          # Chrome Web Store Beta Channel
-          curl -H "Authorization: Bearer ${{ secrets.CHROME_STORE_TOKEN }}" \
-               -H "x-goog-api-version: 2" \
-               -X PUT -T chronicle-sync-chrome.zip \
-               https://www.googleapis.com/upload/chromewebstore/v1.1/items/${{ secrets.CHROME_STORE_ITEM_ID }}
-          
-          # Firefox Add-ons Beta Channel
-          web-ext sign \
-            --api-key=${{ secrets.AMO_JWT_ISSUER }} \
-            --api-secret=${{ secrets.AMO_JWT_SECRET }} \
-            --channel=beta
-      
-      # For production: Upload to GitHub release and main store channels
-      - name: Upload to stores
-        if: github.event_name == 'release'
-        run: |
-          # Upload to GitHub release
-          gh release upload ${{ github.event.release.tag_name }} \
-            chronicle-sync-chrome.zip \
-            chronicle-sync-firefox.zip
-          
-          # Chrome Web Store
-          curl -H "Authorization: Bearer ${{ secrets.CHROME_STORE_TOKEN }}" \
-               -H "x-goog-api-version: 2" \
-               -X PUT -T chronicle-sync-chrome.zip \
-               https://www.googleapis.com/upload/chromewebstore/v1.1/items/${{ secrets.CHROME_STORE_ITEM_ID }}
-          
-          # Firefox Add-ons
-          web-ext sign \
-            --api-key=${{ secrets.AMO_JWT_ISSUER }} \
-            --api-secret=${{ secrets.AMO_JWT_SECRET }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            # Production: Upload to main store channels
+            curl -H "Authorization: Bearer ${{ secrets.CHROME_STORE_TOKEN }}" \
+                 -H "x-goog-api-version: 2" \
+                 -X PUT -T chronicle-sync-chrome.zip \
+                 https://www.googleapis.com/upload/chromewebstore/v1.1/items/${{ secrets.CHROME_STORE_ITEM_ID }}
+            
+            web-ext sign \
+              --api-key=${{ secrets.AMO_JWT_ISSUER }} \
+              --api-secret=${{ secrets.AMO_JWT_SECRET }}
+          else
+            # Staging: Upload to beta channels
+            curl -H "Authorization: Bearer ${{ secrets.CHROME_STORE_TOKEN }}" \
+                 -H "x-goog-api-version: 2" \
+                 -X PUT -T chronicle-sync-chrome.zip \
+                 https://www.googleapis.com/upload/chromewebstore/v1.1/items/${{ secrets.CHROME_STORE_ITEM_ID }}
+            
+            web-ext sign \
+              --api-key=${{ secrets.AMO_JWT_ISSUER }} \
+              --api-secret=${{ secrets.AMO_JWT_SECRET }} \
+              --channel=beta
+          fi
       
       - name: Deploy web interface
         run: |
@@ -186,15 +165,7 @@ jobs:
               `- Extensions: ${env === 'staging' ? 'Available in beta channels' : 'Published to stores'}\n\n` +
               `Monitor deployment status in [AWS Console](https://console.aws.amazon.com/ecs/home?region=us-east-1#/clusters/chronicle-sync-${env}/services/sync/events)`;
             
-            if (context.eventName === 'release') {
-              // Comment on the release
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.payload.release.id,
-                body: message
-              });
-            } else if (context.ref === 'refs/heads/main') {
+            if (context.ref === 'refs/heads/main') {
               // Create a new issue for main branch deployment
               await github.rest.issues.create({
                 owner: context.repo.owner,
