@@ -1,11 +1,8 @@
 name: Release
 
 on:
-  # Production and staging deployments
   push:
-    branches:
-      - main
-      - staging
+    branches: [main, staging]
 
 jobs:
   deploy:
