@@ -83,7 +83,7 @@ We may update this privacy policy to reflect changes in our practices or for oth
 
 For privacy-related questions or concerns:
 - GitHub Issues: [https://github.com/posix4e/chronicle-sync/issues](https://github.com/posix4e/chronicle-sync/issues)
-- Email: [Add contact email]
+- Email: posix4e@gmail.com
 
 ## Open Source
 
