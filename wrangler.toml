@@ -1,0 +1,24 @@
+name = "chronicle-sync"
+main = "src/backend/index.js"
+compatibility_date = "2023-12-01"
+
+[env.staging]
+name = "chronicle-sync-staging"
+vars = { ENVIRONMENT = "staging" }
+
+[env.production]
+name = "chronicle-sync"
+vars = { ENVIRONMENT = "production" }
+
+[[r2_buckets]]
+binding = "SYNC_BUCKET"
+bucket_name = "chronicle-sync"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "chronicle-sync"
+database_id = ""
+
+[[kv_namespaces]]
+binding = "SYNC_KV"
+id = ""
