@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chronicle Sync - Browser History Synchronization</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <header class="text-center mb-12">
+            <img src="assets/images/icon128.png" alt="Chronicle Sync Logo" class="mx-auto mb-4 w-32">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">Chronicle Sync</h1>
+            <p class="text-xl text-gray-600">Cross-platform browser history synchronization</p>
+        </header>
+
+        <main class="max-w-3xl mx-auto">
+            <section class="bg-white rounded-lg shadow-md p-6 mb-8">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Installation</h2>
+                <div class="space-y-4">
+                    <div id="current-version" class="text-lg text-gray-700 mb-4">
+                        Current Version: <span class="font-semibold" id="version-number">Loading...</span>
+                    </div>
+                    <div class="flex space-x-4">
+                        <a href="#" id="download-btn" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                            Download Latest Version
+                        </a>
+                        <a href="https://github.com/posix4e/chronicle-sync" class="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            View on GitHub
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <section class="bg-white rounded-lg shadow-md p-6 mb-8">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Manual Installation</h2>
+                <ol class="list-decimal list-inside space-y-3 text-gray-700">
+                    <li>Download the latest version of Chronicle Sync</li>
+                    <li>Open Chrome and navigate to <code class="bg-gray-100 px-2 py-1 rounded">chrome://extensions</code></li>
+                    <li>Enable "Developer mode" in the top right corner</li>
+                    <li>Click "Load unpacked" and select the extracted extension folder</li>
+                    <li>Chronicle Sync should now appear in your extensions list</li>
+                </ol>
+            </section>
+
+            <section class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Features</h2>
+                <ul class="list-disc list-inside space-y-3 text-gray-700">
+                    <li>Secure, end-to-end encrypted history synchronization</li>
+                    <li>Cross-platform support</li>
+                    <li>Real-time syncing across devices</li>
+                    <li>Privacy-focused design</li>
+                    <li>Open source and transparent</li>
+                </ul>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Fetch the latest release information
+        fetch('https://api.github.com/repos/posix4e/chronicle-sync/releases/latest')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('version-number').textContent = data.tag_name;
+                document.getElementById('download-btn').href = data.assets[0].browser_download_url;
+            })
+            .catch(error => {
+                document.getElementById('version-number').textContent = 'Error loading version';
+                console.error('Error:', error);
+            });
+    </script>
+</body>
+</html>
