@@ -25,6 +25,10 @@ name = "chronicle-sync"
 main = "dist-worker/worker.js"
 compatibility_date = "2023-12-01"
 
+# Use module format for D1 compatibility
+compatibility_flags = ["nodejs_compat"]
+format = "modules"
+
 [env.staging]
 name = "chronicle-sync-staging"
 vars = { ENVIRONMENT = "staging" }

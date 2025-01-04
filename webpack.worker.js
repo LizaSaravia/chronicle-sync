@@ -5,7 +5,13 @@ module.exports = {
   entry: './src/backend/index.js',
   output: {
     filename: 'worker.js',
-    path: path.resolve(__dirname, 'dist-worker')
+    path: path.resolve(__dirname, 'dist-worker'),
+    library: {
+      type: 'module'
+    }
+  },
+  experiments: {
+    outputModule: true
   },
   mode: process.env.NODE_ENV || 'production',
   module: {

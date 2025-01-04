@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS devices (
 `;
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     try {
       const url = new URL(request.url);
       const path = url.pathname;
