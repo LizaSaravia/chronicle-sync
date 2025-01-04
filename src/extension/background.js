@@ -9,20 +9,39 @@ let syncManager = null;
 
 // Initialize sync with password
 async function initializeSync(password) {
-  const crypto = new CryptoManager(password);
-  const storage = new StorageManager(crypto);
-  const api = new ApiClient(process.env.NODE_ENV === 'production' ? 'production' : 'staging');
-  const history = new HistoryManager(storage, api);
-  syncManager = new SyncManager(history);
-  
-  // Initialize history manager (create/join sync group)
-  await history.initialize();
-  
-  // Start periodic sync
-  await syncManager.startSync();
-  
-  // Store initialization status
-  await storage.saveLocal('initialized', true);
+  try {
+    if (!password || typeof password !== 'string' || password.length < 8) {
+      throw new Error('Password must be at least 8 characters long');
+    }
+
+    const crypto = new CryptoManager(password);
+    const storage = new StorageManager(crypto);
+    const api = new ApiClient(process.env.NODE_ENV === 'production' ? 'production' : 'staging');
+    const history = new HistoryManager(storage, api);
+    
+    // Test crypto initialization
+    await crypto.test();
+    
+    // Create sync manager
+    syncManager = new SyncManager(history);
+    
+    // Initialize history manager (create/join sync group)
+    await history.initialize();
+    
+    // Start periodic sync
+    await syncManager.startSync();
+    
+    // Store initialization status
+    await storage.saveLocal('initialized', true);
+    
+    console.log('Chronicle Sync initialized successfully');
+  } catch (error) {
+    console.error('Initialization failed:', error);
+    // Clean up any partial initialization
+    syncManager = null;
+    await chrome.storage.local.remove('initialized');
+    throw error;
+  }
 }
 
 // Handle extension installation or update

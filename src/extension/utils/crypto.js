@@ -19,7 +19,21 @@ export class CryptoManager {
       return JSON.parse(decrypted.toString(CryptoJS.enc.Utf8));
     } catch (error) {
       console.error('Decryption failed:', error);
-      return null;
+      throw new Error('Failed to decrypt data. The password may be incorrect.');
+    }
+  }
+
+  async test() {
+    try {
+      const testData = { test: 'Chronicle Sync Test' };
+      const encrypted = await this.encrypt(testData);
+      const decrypted = await this.decrypt(encrypted);
+      
+      if (!decrypted || decrypted.test !== testData.test) {
+        throw new Error('Encryption test failed: data mismatch');
+      }
+    } catch (error) {
+      throw new Error('Failed to initialize encryption: ' + error.message);
     }
   }
 }
