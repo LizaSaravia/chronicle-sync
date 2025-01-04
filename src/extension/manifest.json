@@ -6,19 +6,23 @@
   "permissions": [
     "storage",
     "history",
-    "bookmarks"
-  ],
-  "host_permissions": [
-    "https://*.workers.dev/*"
+    "tabs",
+    "alarms"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   },
   "icons": {
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   }
+}
 }
