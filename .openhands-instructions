@@ -2,21 +2,6 @@
 
 ## Repository Structure
 
-```
-.
-├── apps/           # Application variants
-│   ├── chrome/     # Chrome extension
-│   ├── firefox/    # Firefox extension
-│   └── web/        # Web interface
-├── docs/           # Documentation
-├── infrastructure/ # CI/CD and deployment
-│   └── ci/         # CI/CD scripts
-├── packages/       # Core packages
-│   └── core/       # Sync engine
-├── scripts/        # Development scripts
-└── src/           # Backend service
-```
-
 ## Development Workflow
 
 1. **Code Changes**
