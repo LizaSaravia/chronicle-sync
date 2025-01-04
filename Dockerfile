@@ -3,13 +3,19 @@ FROM node:20-slim AS builder
 
 WORKDIR /app
 
-# Copy package files for workspaces
+# Create workspace directories
+RUN mkdir -p packages/sync apps/chrome apps/firefox apps/web
+
+# Copy root package files
 COPY package*.json ./
-COPY packages/*/package*.json ./packages/
-COPY apps/*/package*.json ./apps/
 COPY tsconfig*.json ./
-COPY packages/*/tsconfig*.json ./packages/
-COPY apps/*/tsconfig*.json ./apps/
+
+# Copy workspace package files
+COPY packages/sync/package*.json packages/sync/
+COPY packages/sync/tsconfig*.json packages/sync/
+COPY apps/chrome/package*.json apps/chrome/
+COPY apps/firefox/package*.json apps/firefox/
+COPY apps/web/package*.json apps/web/
 
 # Install dependencies
 RUN npm ci
@@ -25,10 +31,15 @@ FROM node:20-slim
 
 WORKDIR /app
 
-# Copy package files and built artifacts
+# Create workspace directories
+RUN mkdir -p packages/sync
+
+# Copy package files
 COPY package*.json ./
-COPY packages/*/package*.json ./packages/
-COPY --from=builder /app/packages/sync/dist ./packages/sync/dist
+COPY packages/sync/package*.json packages/sync/
+
+# Copy built artifacts
+COPY --from=builder /app/packages/sync/dist packages/sync/dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY server.js ./
 
