@@ -6,8 +6,12 @@ on:
   pull_request:
     branches: [main, staging]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build-and-deploy:
+  ci-cd:
     runs-on: ubuntu-latest
     environment: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' && 'production' || 'staging') || '' }}
     env:
@@ -26,6 +30,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
       
+      # Run verification steps first
+      - name: Lint and test
+        run: |
+          npm run lint
+          npm test
+          npm run test:e2e
+      
+      # Build all packages and extensions
       - name: Build packages
         run: npm run build:packages
       
