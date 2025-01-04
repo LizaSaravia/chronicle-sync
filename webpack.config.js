@@ -5,7 +5,8 @@ const webpack = require('webpack');
 module.exports = {
   entry: {
     background: './src/extension/background.js',
-    popup: './src/extension/popup.js'
+    popup: './src/extension/popup.js',
+    options: './src/extension/options.js'
   },
   output: {
     filename: '[name].js',
@@ -46,6 +47,10 @@ module.exports = {
         {
           from: './src/extension/popup.html',
           to: 'popup.html'
+        },
+        {
+          from: './src/extension/options.html',
+          to: 'options.html'
         },
         {
           from: './src/extension/icons',
