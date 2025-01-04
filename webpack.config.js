@@ -46,6 +46,10 @@ module.exports = {
         {
           from: './src/extension/popup.html',
           to: 'popup.html'
+        },
+        {
+          from: './src/extension/icons',
+          to: 'icons'
         }
       ]
     })
