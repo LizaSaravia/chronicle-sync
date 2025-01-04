@@ -13,11 +13,9 @@ bucket_name = "chronicle-sync-staging"
 [[env.staging.d1_databases]]
 binding = "DB"
 database_name = "chronicle-sync-staging"
-database_id = "${STAGING_DB_ID}"
 
 [[env.staging.kv_namespaces]]
 binding = "SYNC_KV"
-id = "${STAGING_KV_ID}"
 
 [env.production]
 name = "chronicle-sync"
@@ -30,8 +28,6 @@ bucket_name = "chronicle-sync"
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "chronicle-sync"
-database_id = "${PROD_DB_ID}"
 
 [[env.production.kv_namespaces]]
 binding = "SYNC_KV"
-id = "${PROD_KV_ID}"
