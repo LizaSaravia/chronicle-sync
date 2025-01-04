@@ -2,23 +2,40 @@ name = "chronicle-sync"
 main = "src/backend/index.js"
 compatibility_date = "2023-12-01"
 
+[build]
+command = "npm run build:worker"
+watch_dir = "src/backend"
+
 [env.staging]
 name = "chronicle-sync-staging"
 vars = { ENVIRONMENT = "staging" }
+
+[[env.staging.r2_buckets]]
+binding = "SYNC_BUCKET"
+bucket_name = "chronicle-sync-staging"
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "chronicle-sync-staging"
+database_id = "${STAGING_DB_ID}"
+
+[[env.staging.kv_namespaces]]
+binding = "SYNC_KV"
+id = "${STAGING_KV_ID}"
 
 [env.production]
 name = "chronicle-sync"
 vars = { ENVIRONMENT = "production" }
 
-[[r2_buckets]]
+[[env.production.r2_buckets]]
 binding = "SYNC_BUCKET"
 bucket_name = "chronicle-sync"
 
-[[d1_databases]]
+[[env.production.d1_databases]]
 binding = "DB"
 database_name = "chronicle-sync"
-database_id = ""
+database_id = "${PROD_DB_ID}"
 
-[[kv_namespaces]]
+[[env.production.kv_namespaces]]
 binding = "SYNC_KV"
-id = ""
+id = "${PROD_KV_ID}"

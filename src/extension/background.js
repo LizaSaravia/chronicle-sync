@@ -2,6 +2,7 @@ import { CryptoManager } from './utils/crypto';
 import { StorageManager } from './utils/storage';
 import { HistoryManager } from './utils/history';
 import { SyncManager } from './utils/sync';
+import { ApiClient } from './utils/api';
 
 const VERSION = '1.0.0';
 let syncManager = null;
@@ -10,9 +11,14 @@ let syncManager = null;
 async function initializeSync(password) {
   const crypto = new CryptoManager(password);
   const storage = new StorageManager(crypto);
-  const history = new HistoryManager(storage);
+  const api = new ApiClient(process.env.NODE_ENV === 'production' ? 'production' : 'staging');
+  const history = new HistoryManager(storage, api);
   syncManager = new SyncManager(history);
   
+  // Initialize history manager (create/join sync group)
+  await history.initialize();
+  
+  // Start periodic sync
   await syncManager.startSync();
   
   // Store initialization status

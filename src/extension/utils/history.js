@@ -1,7 +1,28 @@
 export class HistoryManager {
-  constructor(storageManager) {
+  constructor(storageManager, apiClient) {
     this.storage = storageManager;
+    this.api = apiClient;
     this.syncInProgress = false;
+  }
+
+  async initialize() {
+    // Get or generate device ID
+    let deviceId = await this.storage.getLocal('deviceId');
+    if (!deviceId) {
+      deviceId = crypto.randomUUID();
+      await this.storage.saveLocal('deviceId', deviceId);
+    }
+
+    // Get or create sync group
+    let groupId = await this.storage.getLocal('groupId');
+    if (!groupId) {
+      const { groupId: newGroupId } = await this.api.createSyncGroup(deviceId);
+      groupId = newGroupId;
+      await this.storage.saveLocal('groupId', groupId);
+    }
+
+    this.deviceId = deviceId;
+    this.groupId = groupId;
   }
 
   async getLocalHistory(startTime = null, maxResults = 100) {
@@ -18,22 +39,49 @@ export class HistoryManager {
     this.syncInProgress = true;
 
     try {
+      if (!this.deviceId || !this.groupId) {
+        await this.initialize();
+      }
+
       // Get last sync time
       const lastSync = await this.storage.getLocal('lastHistorySync') || 0;
 
       // Get new history items since last sync
       const newHistory = await this.getLocalHistory(lastSync);
       
-      // Get existing synced history
-      const syncedHistory = await this.storage.getSync('browserHistory') || [];
+      if (newHistory.length > 0) {
+        // Encrypt and sync new history items
+        const encryptedHistory = newHistory.map(item => ({
+          ...item,
+          title: await this.storage.crypto.encrypt(item.title),
+          url: await this.storage.crypto.encrypt(item.url)
+        }));
 
-      // Merge new items with existing ones, avoiding duplicates
-      const merged = this.mergeHistory(syncedHistory, newHistory);
+        await this.api.syncData(this.groupId, this.deviceId, encryptedHistory);
+      }
 
-      // Save merged history back to sync storage
-      await this.storage.saveSync('browserHistory', merged);
+      // Get updates from other devices
+      const { updates } = await this.api.getUpdates(
+        this.groupId,
+        this.deviceId,
+        lastSync
+      );
 
-      // Update last sync time
+      // Decrypt and merge updates
+      const decryptedUpdates = await Promise.all(
+        updates.map(async item => ({
+          ...item,
+          title: await this.storage.crypto.decrypt(item.title),
+          url: await this.storage.crypto.decrypt(item.url)
+        }))
+      );
+
+      // Get existing history and merge
+      const existingHistory = await this.storage.getLocal('browserHistory') || [];
+      const merged = this.mergeHistory(existingHistory, decryptedUpdates);
+
+      // Save merged history locally
+      await this.storage.saveLocal('browserHistory', merged);
       await this.storage.saveLocal('lastHistorySync', Date.now());
     } catch (error) {
       console.error('History sync failed:', error);
@@ -64,6 +112,6 @@ export class HistoryManager {
   }
 
   async getDeviceHistory() {
-    return await this.storage.getSync('browserHistory') || [];
+    return await this.storage.getLocal('browserHistory') || [];
   }
 }
