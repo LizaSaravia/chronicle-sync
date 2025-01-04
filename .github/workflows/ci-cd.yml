@@ -7,8 +7,14 @@ on:
     branches: [main, staging]
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' && 'production' || 'staging') || '' }}
+    env:
+      ENV_NAME: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+      VERSION: ${{ github.ref == 'refs/heads/main' && format('0.0.0-main.{0}', github.run_number) || format('0.0.0-beta.{0}', github.run_number) }}
+      SYNC_URL: ${{ github.ref == 'refs/heads/main' && 'https://sync.chronicle-sync.dev' || 'https://staging.chronicle-sync.dev' }}
+      SHOULD_DEPLOY: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging') }}
     steps:
       - uses: actions/checkout@v4
       
@@ -26,33 +32,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       
-      - name: Build Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: false
-          tags: chronicle-sync:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  deploy:
-    needs: build
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging')
-    runs-on: ubuntu-latest
-    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
-    env:
-      ENV_NAME: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
-      VERSION: ${{ github.ref == 'refs/heads/main' && format('0.0.0-main.{0}', github.run_number) || format('0.0.0-beta.{0}', github.run_number) }}
-      SYNC_URL: ${{ github.ref == 'refs/heads/main' && 'https://sync.chronicle-sync.dev' || 'https://staging.chronicle-sync.dev' }}
-    steps:
-      - uses: actions/checkout@v4
-      
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-      
+      # Configure AWS and ECR only if deploying
       - name: Configure AWS credentials
+        if: env.SHOULD_DEPLOY == 'true'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -60,33 +42,33 @@ jobs:
           aws-region: us-east-1
       
       - name: Login to Amazon ECR
+        if: env.SHOULD_DEPLOY == 'true'
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
         with:
           mask-password: true
       
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      
+      # Build Docker image (always)
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: true
-          tags: ${{ steps.login-ecr.outputs.registry }}/chronicle-sync:${{ env.VERSION }}
+          push: ${{ env.SHOULD_DEPLOY == 'true' }}
+          tags: ${{ env.SHOULD_DEPLOY == 'true' && format('{0}/chronicle-sync:{1}', steps.login-ecr.outputs.registry, env.VERSION) || format('chronicle-sync:{0}', github.sha) }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
       
+      # Deploy steps only run on push to main/staging
       - name: Deploy backend
+        if: env.SHOULD_DEPLOY == 'true'
         run: |
-          # Update ECS service
           aws ecs update-service \
             --cluster chronicle-sync-${{ env.ENV_NAME }} \
             --service sync \
             --force-new-deployment
       
       - name: Build extensions
+        if: env.SHOULD_DEPLOY == 'true'
         run: |
           # Update version and sync URL in manifests
           jq --arg v "$VERSION" --arg u "$SYNC_URL" \
@@ -97,19 +79,18 @@ jobs:
             apps/firefox/src/manifest.json > tmp && mv tmp apps/firefox/src/manifest.json
           
           # Build extensions
-          npm ci
-          npm run build:packages
           npm run build:chrome
           npm run build:firefox
           npm run build:web
       
       - name: Package extensions
+        if: env.SHOULD_DEPLOY == 'true'
         run: |
           cd apps/chrome/dist && zip -r ../../../chronicle-sync-chrome.zip .
           cd ../../firefox/dist && zip -r ../../../chronicle-sync-firefox.zip .
       
-      # Upload extensions to stores
       - name: Upload extensions
+        if: env.SHOULD_DEPLOY == 'true'
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
             # Production: Upload to main store channels
@@ -135,6 +116,7 @@ jobs:
           fi
       
       - name: Deploy web interface
+        if: env.SHOULD_DEPLOY == 'true'
         run: |
           cd apps/web
           aws s3 sync dist/ s3://chronicle-sync-${{ env.ENV_NAME }}/ --delete
@@ -143,6 +125,7 @@ jobs:
             --paths "/*"
       
       - name: Notify deployment
+        if: env.SHOULD_DEPLOY == 'true'
         uses: actions/github-script@v7
         with:
           script: |
