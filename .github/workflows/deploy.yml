@@ -36,14 +36,20 @@ jobs:
     
     - name: Deploy to Staging
       if: github.ref == 'refs/heads/staging'
-      run: wrangler deploy --env staging
+      run: |
+        wrangler deploy --env staging \
+          --var "KV_NAMESPACE_ID:${{ secrets.STAGING_KV_ID }}" \
+          --var "D1_DB_ID:${{ secrets.STAGING_DB_ID }}"
       env:
         CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     
     - name: Deploy to Production
       if: github.ref == 'refs/heads/main'
-      run: wrangler deploy --env production
+      run: |
+        wrangler deploy --env production \
+          --var "KV_NAMESPACE_ID:${{ secrets.PROD_KV_ID }}" \
+          --var "D1_DB_ID:${{ secrets.PROD_DB_ID }}"
       env:
         CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
