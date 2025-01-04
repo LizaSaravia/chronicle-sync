@@ -8,12 +8,20 @@ AMO_JWT_ISSUER=$4
 AMO_JWT_SECRET=$5
 
 # Install required dependencies
+command -v jq >/dev/null 2>&1 || {
+    echo "Installing jq..."
+    apt-get update && apt-get install -y jq
+}
 npm install --no-save google-auth-library
 npm install -g web-ext
 
 # Get access token from service account credentials
 export GOOGLE_APPLICATION_CREDENTIALS=$(mktemp)
-echo "$CHROME_STORE_TOKEN" > "$GOOGLE_APPLICATION_CREDENTIALS"
+# Format JSON properly with jq
+echo "$CHROME_STORE_TOKEN" | jq '.' > "$GOOGLE_APPLICATION_CREDENTIALS" || {
+    echo "Failed to parse JSON credentials. Make sure CHROME_STORE_TOKEN contains valid JSON"
+    exit 1
+}
 
 # Debug: Check if JSON is valid
 if ! jq . "$GOOGLE_APPLICATION_CREDENTIALS" > /dev/null 2>&1; then
