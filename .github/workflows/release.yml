@@ -59,20 +59,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       
-      - name: Configure ECR
-        env:
-          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
-        run: |
-          # Create ECR repository if it doesn't exist
-          aws ecr describe-repositories --repository-names chronicle-sync || \
-            aws ecr create-repository \
-              --repository-name chronicle-sync \
-              --image-scanning-configuration scanOnPush=true
-          
-          # Get ECR login token and login
-          aws ecr get-login-password --region us-east-1 | \
-            docker login --username AWS --password-stdin $ECR_REGISTRY
-      
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
