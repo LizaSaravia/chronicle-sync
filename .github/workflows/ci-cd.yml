@@ -25,31 +25,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
-      
-      # Cache dependencies
-      - name: Cache node modules
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-      
       - name: Install dependencies
         run: npm ci
-      
-      # Cache build outputs
-      - name: Cache build outputs
-        uses: actions/cache@v3
-        with:
-          path: |
-            packages/*/dist
-            apps/*/dist
-          key: ${{ runner.os }}-build-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-build-
-      
       # Run verification steps first
       - name: Lint and test
         run: |
@@ -95,8 +72,6 @@ jobs:
           context: .
           push: true
           tags: ${{ format('{0}/chronicle-sync:{1}', steps.login-ecr.outputs.registry, env.VERSION) }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
       
       # Deploy steps only run on push to main/staging
       - name: Deploy backend
