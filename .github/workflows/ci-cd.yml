@@ -87,15 +87,26 @@ jobs:
         run: |
           infrastructure/ci/build-extensions.sh "$VERSION" "$SYNC_URL"
       
-      - name: Deploy extensions
+      - name: Upload extension artifacts
         if: env.SHOULD_DEPLOY == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-extensions
+          path: |
+            chronicle-sync-chrome.zip
+            chronicle-sync-firefox.zip
+          
+      - name: Create GitHub Release
+        if: env.SHOULD_DEPLOY == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          infrastructure/ci/deploy-extensions.sh \
-            "${{ github.ref }}" \
-            "${{ secrets.CHROME_STORE_TOKEN }}" \
-            "${{ secrets.CHROME_STORE_ITEM_ID }}" \
-            "${{ secrets.AMO_JWT_ISSUER }}" \
-            "${{ secrets.AMO_JWT_SECRET }}"
+          # Create a new release
+          gh release create "v${{ env.VERSION }}" \
+            --title "Release v${{ env.VERSION }}" \
+            --notes "Browser extensions for Chronicle Sync v${{ env.VERSION }}" \
+            chronicle-sync-chrome.zip \
+            chronicle-sync-firefox.zip
       
       - name: Deploy web interface
         if: env.SHOULD_DEPLOY == 'true'
