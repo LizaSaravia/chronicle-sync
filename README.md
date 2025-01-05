@@ -51,6 +51,14 @@ A secure, cross-platform browser extension for syncing your browsing data across
 3. Copy `wrangler.example.toml` to `wrangler.toml` and configure your Cloudflare credentials
 4. Run `npm run dev` for local development
 
+### Testing and Linting
+
+- Run unit tests: `npm test`
+- Run tests in watch mode: `npm run test:watch`
+- Run E2E tests: `npm run test:e2e`
+- Run linting: `npm run lint`
+- Format code: `npm run format`
+
 ### Architecture
 
 Chronicle Sync uses a distributed architecture:

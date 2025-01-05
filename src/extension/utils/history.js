@@ -1,4 +1,4 @@
-import { LocalDB } from './db';
+import { LocalDB } from './db.js';
 
 export class HistoryManager {
   constructor(storageManager, apiClient) {
