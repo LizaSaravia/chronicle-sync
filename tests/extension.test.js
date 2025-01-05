@@ -279,6 +279,23 @@ describe('Extension End-to-End Test', () => {
     // Create a new page for the popup
     const newPage = await browser.newPage();
     newPage.on('console', msg => console.log('Browser log:', msg.text()));
+    
+    // Check background service worker status
+    console.log('Checking service worker status...');
+    const targets = await browser.targets();
+    const serviceWorker = targets.find(target => 
+      target.type() === 'service_worker' && 
+      target.url().includes(extensionId)
+    );
+    
+    if (serviceWorker) {
+      console.log('Found service worker:', serviceWorker.url());
+      const worker = await serviceWorker.worker();
+      worker.on('console', msg => console.log('Service worker log:', msg.text()));
+    } else {
+      console.warn('No service worker found!');
+    }
+    
     await newPage.goto(`chrome-extension://${extensionId}/popup.html`);
     await takeScreenshot(newPage, 'popup-after-setup');
     
@@ -353,6 +370,24 @@ describe('Extension End-to-End Test', () => {
       // Wait for entries to be processed by HistoryManager
       console.log('Waiting for entries to be processed...');
       await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Verify entries are in the database
+      console.log('Verifying entries in database...');
+      const dbEntries = await new Promise((resolve) => {
+        const request = indexedDB.open('chronicle-sync', 1);
+        request.onsuccess = () => {
+          const db = request.result;
+          const tx = db.transaction('history', 'readonly');
+          const store = tx.objectStore('history');
+          const getAllRequest = store.getAll();
+          getAllRequest.onsuccess = () => resolve(getAllRequest.result);
+        };
+        request.onerror = () => {
+          console.error('Failed to open database:', request.error);
+          resolve([]);
+        };
+      });
+      console.log('Database entries:', dbEntries);
     });
     
     // Wait for history div to be visible
@@ -366,23 +401,86 @@ describe('Extension End-to-End Test', () => {
     
     // Wait for sync to complete
     console.log('Waiting for sync to complete...');
-    await newPage.waitForSelector('#sync-loading');
-    await takeScreenshot(newPage, 'sync-in-progress');
-    await newPage.waitForSelector('#sync-loading', { hidden: true });
+    try {
+      // Wait for loading indicator to appear
+      await newPage.waitForSelector('#sync-loading', { 
+        visible: true,
+        timeout: process.env.CI ? 10000 : 5000
+      });
+      console.log('Sync loading indicator appeared');
+      await takeScreenshot(newPage, 'sync-in-progress');
+      
+      // Wait for loading indicator to disappear
+      await newPage.waitForSelector('#sync-loading', { 
+        hidden: true,
+        timeout: process.env.CI ? 20000 : 10000
+      });
+      console.log('Sync loading indicator disappeared');
+      
+      // Check for any error messages
+      const errorVisible = await newPage.evaluate(() => {
+        const error = document.querySelector('#history-error');
+        return error && window.getComputedStyle(error).display !== 'none';
+      });
+      
+      if (errorVisible) {
+        const errorText = await newPage.$eval('#history-error', el => el.textContent);
+        console.error('Sync error detected:', errorText);
+      } else {
+        console.log('No sync errors detected');
+      }
+      
+      // Log sync state
+      const syncState = await newPage.evaluate(() => ({
+        syncBtnDisabled: document.querySelector('#sync-btn').disabled,
+        syncLoadingDisplay: document.querySelector('#sync-loading').style.display,
+        historyErrorDisplay: document.querySelector('#history-error').style.display,
+        historyItemCount: document.querySelectorAll('.history-item').length
+      }));
+      console.log('Sync state:', syncState);
+      
+    } catch (error) {
+      console.error('Error during sync:', error);
+      // Log the current page state
+      const content = await newPage.content();
+      console.log('Current page content:', content);
+      throw error;
+    }
     
     // Wait a bit for history to update
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     // Wait for history entries to appear
     console.log('Waiting for history entries...');
-    await newPage.waitForFunction(
-      () => {
-        const items = Array.from(document.querySelectorAll('.history-item'));
-        return items.some(item => item.textContent.includes('Test Page 1')) &&
-               items.some(item => item.textContent.includes('Test Page 2'));
-      },
-      { timeout: process.env.CI ? 30000 : 10000 }  // Longer timeout in CI
-    );
+    try {
+      await newPage.waitForFunction(
+        () => {
+          const items = Array.from(document.querySelectorAll('.history-item'));
+          console.log('Current history items:', items.map(item => item.textContent));
+          const hasTestPage1 = items.some(item => item.textContent.includes('Test Page 1'));
+          const hasTestPage2 = items.some(item => item.textContent.includes('Test Page 2'));
+          console.log('Found Test Page 1:', hasTestPage1, 'Test Page 2:', hasTestPage2);
+          return hasTestPage1 && hasTestPage2;
+        },
+        { timeout: process.env.CI ? 30000 : 10000 }  // Longer timeout in CI
+      );
+    } catch (error) {
+      console.error('Failed while waiting for history entries:', error);
+      // Log the current page content and state
+      const content = await newPage.content();
+      console.log('Current page content:', content);
+      const historyItems = await newPage.evaluate(() => {
+        return {
+          historyDivDisplay: document.querySelector('.history').style.display,
+          historyItems: Array.from(document.querySelectorAll('.history-item')).map(item => ({
+            text: item.textContent,
+            display: window.getComputedStyle(item).display
+          }))
+        };
+      });
+      console.log('History state:', historyItems);
+      throw error;
+    }
     
     // Take screenshot after entries are found
     await takeScreenshot(newPage, 'history-entries');
