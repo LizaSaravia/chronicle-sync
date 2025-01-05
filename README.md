@@ -17,6 +17,7 @@ A secure, cross-platform browser extension for syncing your browsing data across
 
 </div>
 
+[View more screenshots](https://posix4e.github.io/chronicle-sync/test-results) | [View all releases](https://posix4e.github.io/chronicle-sync/releases/)
 ## Features
 
 - 🔒 End-to-end encryption using password-based keys
