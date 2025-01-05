@@ -1,0 +1,7 @@
+title: Chronicle Sync
+description: Cross-platform browser history synchronization with end-to-end encryption
+theme: jekyll-theme-minimal
+
+# Show screenshots at full size
+kramdown:
+  parse_block_html: true
