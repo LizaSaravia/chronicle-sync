@@ -25,6 +25,9 @@ describe('Extension End-to-End Test', () => {
    * @param {string} description - Description of the screenshot
    */
   async function takeScreenshot(targetPage, description) {
+    if (!process.env.SCREENSHOTS_FOR_DOCS) {
+      return; // Skip screenshots unless explicitly requested
+    }
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const fileName = `${timestamp}_${description}.png`;
     const filePath = path.join(screenshotDir, fileName);
@@ -37,9 +40,11 @@ describe('Extension End-to-End Test', () => {
   }
 
   beforeAll(async () => {
-    // Create screenshots directory
-    screenshotDir = path.join(__dirname, 'screenshots', 'setup-flow');
-    await fs.mkdir(screenshotDir, { recursive: true });
+    // Create screenshots directory only if needed
+    if (process.env.SCREENSHOTS_FOR_DOCS) {
+      screenshotDir = path.join(__dirname, 'screenshots', 'setup-flow');
+      await fs.mkdir(screenshotDir, { recursive: true });
+    }
 
     // Check if extension is built
     try {

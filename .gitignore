@@ -7,3 +7,4 @@ cypress.env.json
 *.log
 .DS_Store
 extension.zip
+tests/screenshots/
