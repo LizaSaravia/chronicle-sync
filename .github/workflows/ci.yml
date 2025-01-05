@@ -145,14 +145,14 @@ jobs:
 
       - name: Deploy Worker to Cloudflare Staging
         if: success() && github.ref == 'refs/heads/main'
-        run: cd packages/worker && wrangler deploy --env staging
+        run: wrangler deploy --env staging
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Deploy Dashboard to Cloudflare Pages (Staging)
         if: success() && github.ref == 'refs/heads/main'
-        run: cd packages/dashboard && pnpm run deploy:staging
+        run: wrangler pages deploy dist/dashboard --project-name chronicle-sync-dashboard --branch staging
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -173,14 +173,14 @@ jobs:
 
       - name: Deploy Worker to Cloudflare Production
         if: success() && startsWith(github.ref, 'refs/tags/v')
-        run: cd packages/worker && wrangler deploy --env production
+        run: wrangler deploy --env production
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Deploy Dashboard to Cloudflare Pages (Production)
         if: success() && startsWith(github.ref, 'refs/tags/v')
-        run: cd packages/dashboard && pnpm run deploy:prod
+        run: wrangler pages deploy dist/dashboard --project-name chronicle-sync-dashboard --branch main
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
