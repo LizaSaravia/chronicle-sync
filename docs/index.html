@@ -18,12 +18,18 @@
             <section class="bg-white rounded-lg shadow-md p-6 mb-8">
                 <h2 class="text-2xl font-semibold text-gray-800 mb-4">Installation</h2>
                 <div class="space-y-4">
-                    <div id="current-version" class="text-lg text-gray-700 mb-4">
-                        Current Version: <span class="font-semibold" id="version-number">Loading...</span>
+                    <div class="space-y-4 mb-4">
+                        <div class="text-lg text-gray-700">
+                            <div>Stable Version: <span class="font-semibold" id="stable-version">Loading...</span></div>
+                            <div>Beta Version: <span class="font-semibold" id="beta-version">Loading...</span></div>
+                        </div>
                     </div>
-                    <div class="flex space-x-4">
-                        <a href="#" id="download-btn" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
-                            Download Latest Version
+                    <div class="flex flex-wrap gap-4">
+                        <a href="#" id="stable-download" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                            Download Stable Version
+                        </a>
+                        <a href="#" id="beta-download" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                            Download Beta Version
                         </a>
                         <a href="https://github.com/posix4e/chronicle-sync" class="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                             View on GitHub
@@ -57,15 +63,35 @@
     </div>
 
     <script>
-        // Fetch the latest release information
-        fetch('https://api.github.com/repos/posix4e/chronicle-sync/releases/latest')
+        // Fetch all releases to get both stable and beta versions
+        fetch('https://api.github.com/repos/posix4e/chronicle-sync/releases')
             .then(response => response.json())
-            .then(data => {
-                document.getElementById('version-number').textContent = data.tag_name;
-                document.getElementById('download-btn').href = data.assets[0].browser_download_url;
+            .then(releases => {
+                // Find beta and stable releases
+                const betaRelease = releases.find(r => r.tag_name === 'beta');
+                const stableRelease = releases.find(r => !r.prerelease && r.tag_name !== 'beta');
+
+                // Update beta version info
+                if (betaRelease && betaRelease.assets.length > 0) {
+                    document.getElementById('beta-version').textContent = 'Available';
+                    document.getElementById('beta-download').href = betaRelease.assets[0].browser_download_url;
+                } else {
+                    document.getElementById('beta-version').textContent = 'Not available';
+                    document.getElementById('beta-download').style.display = 'none';
+                }
+
+                // Update stable version info
+                if (stableRelease && stableRelease.assets.length > 0) {
+                    document.getElementById('stable-version').textContent = stableRelease.tag_name;
+                    document.getElementById('stable-download').href = stableRelease.assets[0].browser_download_url;
+                } else {
+                    document.getElementById('stable-version').textContent = 'Not available';
+                    document.getElementById('stable-download').style.display = 'none';
+                }
             })
             .catch(error => {
-                document.getElementById('version-number').textContent = 'Error loading version';
+                document.getElementById('beta-version').textContent = 'Error loading version';
+                document.getElementById('stable-version').textContent = 'Error loading version';
                 console.error('Error:', error);
             });
     </script>
