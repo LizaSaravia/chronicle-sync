@@ -148,7 +148,7 @@ describe('Extension End-to-End Test', () => {
     console.log('Navigating to extension popup...');
     await page.goto(`chrome-extension://${extensionId}/popup.html`);
     console.log('Waiting for extension to initialize...');
-    await page.waitForTimeout(1000); // Give the extension time to initialize
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Give the extension time to initialize
     
     // Log the page content to help debug issues
     const content = await page.content();
