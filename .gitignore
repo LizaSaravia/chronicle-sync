@@ -1,6 +1,7 @@
 node_modules/
 dist/
 coverage/
+cypress.env.json
 .env
 .env.*
 *.log
