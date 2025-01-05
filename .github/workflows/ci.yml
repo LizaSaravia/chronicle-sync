@@ -86,6 +86,9 @@ jobs:
           pnpm webpack --config webpack.worker.js --mode production
           # Build the dashboard and extension
           pnpm turbo build
+          # Ensure dashboard is in the correct directory
+          mkdir -p dist/dashboard
+          cp -r dist/* dist/dashboard/ 2>/dev/null || true
         env:
           NODE_ENV: production
 
@@ -149,11 +152,14 @@ jobs:
       - name: Deploy to Cloudflare Pages (Staging)
         if: success() && github.ref == 'refs/heads/main'
         run: |
-          # Deploy both worker and pages
-          wrangler pages deploy dist --project-name chronicle-sync --branch staging --commit-dirty=true
-
           # Create project if it doesn't exist (this is idempotent)
           wrangler pages project create chronicle-sync --production-branch main || true
+
+          # Deploy worker first
+          wrangler deploy --config wrangler.worker.toml
+
+          # Then deploy pages
+          wrangler pages deploy dist/dashboard --project-name chronicle-sync --branch staging --commit-dirty=true
 
           # Add custom domains if DOMAIN is set
           if [ ! -z "$DOMAIN" ]; then
@@ -202,11 +208,14 @@ jobs:
       - name: Deploy to Cloudflare Pages (Production)
         if: success() && startsWith(github.ref, 'refs/tags/v')
         run: |
-          # Deploy both worker and pages
-          wrangler pages deploy dist --project-name chronicle-sync --branch main --commit-dirty=true
-
           # Create project if it doesn't exist (this is idempotent)
           wrangler pages project create chronicle-sync --production-branch main || true
+
+          # Deploy worker first
+          wrangler deploy --config wrangler.worker.toml
+
+          # Then deploy pages
+          wrangler pages deploy dist/dashboard --project-name chronicle-sync --branch main --commit-dirty=true
 
           # Add custom domains if DOMAIN is set
           if [ ! -z "$DOMAIN" ]; then
