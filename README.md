@@ -1,22 +1,22 @@
 # Chronicle Sync
 
-A secure, cross-platform browser extension for syncing your browsing data across devices. Built with modern web technologies and powered by Cloudflare's infrastructure (R2, D1, and KV store).
+A secure, cross-platform browser extension for syncing your browsing data across devices. Built with modern web technologies and powered by Cloudflare's infrastructure.
 
-## Screenshots
+[![CI/CD Status](https://github.com/posix4e/chronicle-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/posix4e/chronicle-sync/actions/workflows/ci.yml)
 
-<div align="center">
+## Overview
 
-### Latest Screenshots
-Screenshots are generated during E2E tests and are available as artifacts in the [latest successful CI run](https://github.com/posix4e/chronicle-sync/actions/workflows/ci.yml?query=branch%3Amain+is%3Asuccess).
+Chronicle Sync provides secure, real-time synchronization of your browsing data across multiple devices and browsers. Built on Cloudflare's infrastructure (R2, D1, and KV store), it ensures both performance and security.
 
-To view the screenshots:
-1. Click the link above to view the latest successful run
-2. Scroll down to "Artifacts"
-3. Download the "test-artifacts" zip file
+## Latest Screenshots
 
-</div>
+Screenshots are automatically generated during E2E tests and available in our [latest successful CI run](https://github.com/posix4e/chronicle-sync/actions/workflows/ci.yml?query=branch%3Amain+is%3Asuccess).
 
-[View CI/CD Status](https://github.com/posix4e/chronicle-sync/actions/workflows/ci.yml) | [View all releases](https://github.com/posix4e/chronicle-sync/releases)
+📸 **View Screenshots:**
+1. Visit the [latest successful CI run](https://github.com/posix4e/chronicle-sync/actions/workflows/ci.yml?query=branch%3Amain+is%3Asuccess)
+2. Download the "test-artifacts" zip file from Artifacts section
+
+[View Latest Release](https://github.com/posix4e/chronicle-sync/releases/latest) | [Documentation](/docs)
 ## Features
 
 - 🔒 End-to-end encryption using password-based keys
@@ -35,36 +35,23 @@ To view the screenshots:
 2. Create a sync group with a strong password
 3. Start syncing your data across devices
 
+## Architecture
+
+Chronicle Sync uses a distributed architecture for security and performance:
+
+- 🔐 **Browser Extension**: Local data handling and encryption
+- ⚡ **Cloudflare Workers**: Backend API and sync
+- 💾 **Cloudflare R2**: Encrypted storage
+- 📊 **Cloudflare D1**: User management
+- 🔄 **Cloudflare KV**: Real-time coordination
+
 ## Development
 
-### Prerequisites
+See our [Development Guide](DEVELOPMENT.md) for detailed setup instructions and contribution guidelines.
 
-- Node.js 20.x or later
-- Wrangler CLI (for Cloudflare Workers deployment)
-- A Cloudflare account with Workers, R2, D1, and KV access
+## Documentation
 
-### Setup
-
-1. Clone the repository
-2. Run `npm install` to install dependencies
-3. Copy `wrangler.example.toml` to `wrangler.toml` and configure your Cloudflare credentials
-4. Run `npm run dev` for local development
-
-### Testing and Linting
-
-- Run unit tests: `npm test`
-- Run tests in watch mode: `npm run test:watch`
-- Run E2E tests: `npm run test:e2e`
-- Run linting: `npm run lint`
-- Format code: `npm run format`
-
-### Architecture
-
-Chronicle Sync uses a distributed architecture:
-- Browser Extension: Handles local data and encryption
-- Cloudflare Workers: Backend API and data synchronization
-- Cloudflare R2: Encrypted data storage
-- Cloudflare D1: Metadata and user management
-- Cloudflare KV: Real-time sync coordination
-
-For detailed technical documentation, see the [/docs](/docs) directory.
+- [Technical Documentation](/docs)
+- [Contributing Guidelines](CONTRIBUTING.md)
+- [Development Guide](DEVELOPMENT.md)
+- [Security Model](/docs/security.md)

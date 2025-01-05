@@ -1,19 +1,50 @@
 # Chronicle Sync Documentation
 
-Chronicle Sync is a cross-platform browser extension for securely synchronizing browsing data.
+Welcome to the Chronicle Sync documentation. This guide covers everything from user guides to technical details.
+
+## Quick Links
+
+- 📱 [Installation Guide](#installation)
+- 🔧 [Development Guide](../DEVELOPMENT.md)
+- 🤝 [Contributing Guidelines](../CONTRIBUTING.md)
+- 🔒 [Security Model](security.md)
+- 📊 [Dashboard Guide](dashboard.md)
+
+## Installation
+
+1. Install from your browser's store:
+   - [Chrome Web Store](https://chrome.google.com/webstore/detail/chronicle-sync)
+   - [Firefox Add-ons](https://addons.mozilla.org/firefox/addon/chronicle-sync)
+
+2. Create a sync group with a strong password
+3. Start syncing your data
 
 ## Features
-- Secure end-to-end encryption
-- Cross-platform synchronization
-- Real-time updates
-- Privacy-focused design
 
-## Documentation
+- 🔐 **Security**
+  - End-to-end encryption
+  - Password-based key derivation
+  - No plaintext data storage
 
-### Latest Release
-- [Latest Test Results & Screenshots](test-results.html)
+- 🌐 **Cross-Platform**
+  - Chrome, Firefox support
+  - Safari iOS (coming soon)
+  - Progressive Web App
+
+- 🔄 **Sync Features**
+  - Real-time updates
+  - Offline support
+  - Selective sync options
+
+## Latest Updates
+
+- [Test Results & Screenshots](test-results.html)
 - [Release History](https://github.com/posix4e/chronicle-sync/releases)
-
-### Development
-- [Contributing Guide](https://github.com/posix4e/chronicle-sync/blob/main/CONTRIBUTING.md)
 - [CI/CD Status](https://github.com/posix4e/chronicle-sync/actions/workflows/ci.yml)
+
+## Technical Documentation
+
+- [API Reference](api.md)
+- [Architecture Overview](architecture.md)
+- [Security Model](security.md)
+- [Dashboard Guide](dashboard.md)
