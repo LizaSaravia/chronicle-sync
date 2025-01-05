@@ -43,8 +43,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       syncLoading.style.display = 'block';
       historyError.style.display = 'none';
 
+      // Wait for the next frame to ensure the loading indicator is visible
+      await new Promise(resolve => requestAnimationFrame(resolve));
+
       const response = await chrome.runtime.sendMessage({ type: 'FORCE_SYNC' });
       if (response.success) {
+        // Wait a bit for the sync to complete and database to update
+        await new Promise(resolve => setTimeout(resolve, 2000));
         await loadHistory();
       } else {
         showError(historyError, 'Sync failed: ' + response.error);
@@ -61,20 +66,31 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function loadHistory() {
     try {
       historyError.style.display = 'none';
+      console.log('Requesting history from background...');
       const response = await chrome.runtime.sendMessage({ type: 'GET_HISTORY' });
+      console.log('Got history response:', response);
       
       if (!response.success) {
-        showError(historyError, 'Failed to load history: ' + response.error);
+        const errorMsg = 'Failed to load history: ' + response.error;
+        console.error(errorMsg);
+        showError(historyError, errorMsg);
         return;
       }
 
       historyList.innerHTML = '';
       if (!response.history || response.history.length === 0) {
+        console.log('No history items found');
         historyList.innerHTML = '<div class="history-item">No history items yet</div>';
         return;
       }
 
-      response.history.slice(0, 50).forEach(item => {
+      console.log(`Found ${response.history.length} history items, displaying first 50`);
+      // Sort by lastVisitTime in descending order
+      const sortedHistory = response.history.sort((a, b) => (b.lastVisitTime || 0) - (a.lastVisitTime || 0));
+      // Clear existing history items
+      historyList.innerHTML = '';
+      sortedHistory.slice(0, 50).forEach(item => {
+        console.log('Adding history item:', { url: item.url, title: item.title });
         const div = document.createElement('div');
         div.className = 'history-item';
         div.innerHTML = `
@@ -86,8 +102,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         historyList.appendChild(div);
       });
+      console.log('History display complete');
     } catch (error) {
-      showError(historyError, 'Failed to load history: ' + error.message);
+      const errorMsg = 'Failed to load history: ' + error.message;
+      console.error(errorMsg, error);
+      showError(historyError, errorMsg);
     }
   }
 });
