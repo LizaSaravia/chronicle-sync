@@ -1,4 +1,4 @@
-export class CryptoManager {
+class CryptoManager {
   constructor(password) {
     if (!password || typeof password !== 'string') {
       throw new Error('Password must be a non-empty string');
@@ -121,3 +121,5 @@ export class CryptoManager {
     }
   }
 }
+
+module.exports = { CryptoManager };
