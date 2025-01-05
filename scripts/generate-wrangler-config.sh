@@ -32,6 +32,6 @@ generate_config() {
     echo "$output has been generated successfully"
 }
 
-# Generate both wrangler config files
-generate_config "wrangler.toml.template" "wrangler.toml"
-generate_config "wrangler.dashboard.toml.template" "wrangler.dashboard.toml"
+# Generate wrangler config files
+generate_config "wrangler.worker.toml.template" "wrangler.worker.toml"
+generate_config "wrangler.pages.toml.template" "wrangler.pages.toml"

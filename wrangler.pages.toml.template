@@ -1,0 +1,16 @@
+name = "chronicle-sync-pages"
+compatibility_date = "2023-12-01"
+pages_build_output_dir = "dist/dashboard"
+
+[env.preview]
+name = "chronicle-sync-pages-preview"
+vars = { ENVIRONMENT = "preview" }
+
+[env.production]
+name = "chronicle-sync-pages"
+vars = { ENVIRONMENT = "production" }
+
+[[d1_databases]]
+binding = "DB"
+database_name = "chronicle-sync"
+database_id = "$PROD_DB_ID"

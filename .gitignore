@@ -13,3 +13,5 @@ docs/screenshots/
 # Generated wrangler config files
 wrangler.toml
 wrangler.dashboard.toml
+wrangler.worker.toml
+wrangler.pages.toml
