@@ -5,9 +5,9 @@
   "main": "src/extension/background.js",
   "type": "module",
   "scripts": {
-    "test": "vitest run \"tests/(?!.*\\.e2e\\.test\\.js$).*\\.test\\.js$\"",
-    "test:watch": "vitest \"tests/(?!.*\\.e2e\\.test\\.js$).*\\.test\\.js$\"",
-    "test:e2e": "vitest run \"tests/.*\\.e2e\\.test\\.js$\"",
+    "test": "vitest run --exclude \"tests/extension.e2e.test.js\"",
+    "test:watch": "vitest",
+    "test:e2e": "RUN_E2E=true vitest run tests/extension.e2e.test.js",
     "build": "webpack --mode production",
     "dev": "webpack --mode development --watch",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
