@@ -7,54 +7,21 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
+  test-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - uses: actions/setup-node@v3
         with:
           node-version: '18'
-          
-      - name: Install dependencies
-        run: npm ci
-        
-      - name: Run tests
-        run: npm test
-        
-      - name: Upload screenshots
-        uses: actions/upload-artifact@v3
-        if: always()  # Run on both success and failure
+      - run: npm ci
+      - run: npm test
+      - uses: actions/upload-artifact@v3
+        if: always()
         with:
-          name: test-screenshots
+          name: screenshots
           path: screenshots/
-          retention-days: 14
-
-  deploy:
-    needs: test  # Only run if tests pass
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'  # Only on main branch pushes
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          
-      - name: Install dependencies
-        run: npm ci
-        
-      - name: Download test screenshots
-        uses: actions/download-artifact@v3
-        with:
-          name: test-screenshots
-          path: screenshots/
-          
-      - name: Build and deploy webpage
-        run: |
-          npm run build
-          npm run deploy
+      - if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: npm run deploy
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
