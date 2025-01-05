@@ -86,9 +86,10 @@ jobs:
           pnpm webpack --config webpack.worker.js --mode production
           # Build the dashboard and extension
           pnpm turbo build
-          # Ensure dashboard is in the correct directory
+          # Create dashboard directory and move files there
           mkdir -p dist/dashboard
-          cp -r dist/* dist/dashboard/ 2>/dev/null || true
+          mv dist/*.{js,html,json} dist/dashboard/ 2>/dev/null || true
+          mv dist/icons dist/dashboard/ 2>/dev/null || true
         env:
           NODE_ENV: production
 
@@ -188,7 +189,6 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           DOMAIN: ${{ secrets.CLOUDFLARE_DOMAIN }}
-
 
 
       - name: Create Beta Release
