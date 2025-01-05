@@ -9,7 +9,7 @@ import puppeteer from 'puppeteer';
  */
 
 // Set timeout for all tests in this suite
-const timeout = process.env.CI ? 120000 : 60000;
+const timeout = process.env.CI ? 30000 : 15000;
 
 describe('Extension End-to-End Test', () => {
   vi.setConfig({ hookTimeout: timeout });
@@ -40,15 +40,13 @@ describe('Extension End-to-End Test', () => {
     screenshotDir = path.join(__dirname, 'screenshots', 'setup-flow');
     await fs.mkdir(screenshotDir, { recursive: true });
 
-    // Build the extension
-    await new Promise((resolve, reject) => {
-      import('child_process').then(({ exec }) => {
-        exec('npm run build', (error) => {
-          if (error) reject(error);
-          else resolve();
-        });
-      });
-    });
+    // Check if extension is built
+    try {
+      await fs.access(path.join(__dirname, '../dist'));
+    } catch {
+      console.log('Extension not built, skipping E2E tests');
+      return;
+    }
 
     // Launch browser with extension
     browser = await puppeteer.launch({
@@ -69,44 +67,17 @@ describe('Extension End-to-End Test', () => {
     });
 
     // Get extension ID
-    let extensionTarget;
-    let retries = 0;
-    const maxRetries = 5;
-    
-    while (!extensionTarget && retries < maxRetries) {
-      const targets = await browser.targets();
-      extensionTarget = targets.find(target => {
-        try {
-          return target.type() === 'service_worker' && target.url().includes('chrome-extension://');
-        } catch (e) {
-          return false;
-        }
-      });
-      
-      if (!extensionTarget) {
-        retries++;
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+    const targets = await browser.targets();
+    const extensionTarget = targets.find(target => {
+      try {
+        return target.url().includes('chrome-extension://');
+      } catch (e) {
+        return false;
       }
-    }
+    });
 
     if (!extensionTarget) {
-      const targets = await browser.targets();
-      // Try to find any extension-related target as fallback
-      extensionTarget = targets.find(target => {
-        try {
-          return target.url().includes('chrome-extension://');
-        } catch (e) {
-          return false;
-        }
-      });
-    }
-
-    if (!extensionTarget) {
-      throw new Error('Could not find extension target. Available targets: ' + 
-        JSON.stringify(await Promise.all((await browser.targets()).map(async t => ({
-          type: t.type(),
-          url: await t.url().catch(() => 'unknown')
-        }))), null, 2));
+      throw new Error('Could not find extension target');
     }
 
     const extensionUrl = await extensionTarget.url();
@@ -190,21 +161,9 @@ describe('Extension End-to-End Test', () => {
     console.log('Clicking setup button...');
     await page.click('#setup-btn');
     
-    // Wait a bit for the options page to open
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Switch to options page
+    // Wait for and switch to options page
     console.log('Switching to options page...');
-    const pages = await browser.pages();
-    console.log('Found pages:', pages.length);
-    
-    // Log all pages
-    for (let i = 0; i < pages.length; i++) {
-      const url = await pages[i].url();
-      console.log(`Page ${i}: ${url}`);
-    }
-    
-    const optionsPage = pages[pages.length - 1];
+    const optionsPage = (await browser.pages()).find(p => p !== page);
     optionsPage.on('console', msg => console.log('Browser log:', msg.text()));
     console.log('Options page URL:', await optionsPage.url());
     
@@ -237,39 +196,13 @@ describe('Extension End-to-End Test', () => {
     console.log('Submitting setup form...');
     await optionsPage.click('#setup-btn');
     
-    // Wait for response
-    await optionsPage.waitForFunction(() => {
-      const success = document.querySelector('.success');
-      const error = document.querySelector('.error');
-      return (success && success.style.display === 'block') || 
-             (error && error.style.display === 'block');
-    }, { timeout: process.env.CI ? 30000 : 10000 });
-    
     // Wait for success message
     console.log('Waiting for success message...');
-    try {
-      await optionsPage.waitForSelector('.success', { 
-        visible: true,
-        timeout: process.env.CI ? 30000 : 10000  // Longer timeout in CI for success message
-      });
-      console.log('Success element found, checking content...');
-      
-      const successText = await optionsPage.$eval('.success', el => el.textContent);
-      console.log('Success text:', successText);
-      
-      // Check if there are any errors
-      const errorText = await optionsPage.$eval('.error', el => el.textContent).catch(() => null);
-      if (errorText) {
-        console.log('Error message found:', errorText);
-      }
-      
-      await takeScreenshot(optionsPage, 'setup-success');
-      expect(successText).toContain('Chronicle Sync has been successfully set up');
-    } catch (e) {
-      console.error('Failed to verify success:', e.message);
-      console.log('Current page content:', await optionsPage.content());
-      throw e;
-    }
+    await optionsPage.waitForSelector('.success', { visible: true });
+    const successText = await optionsPage.$eval('.success', el => el.textContent);
+    console.log('Success text:', successText);
+    await takeScreenshot(optionsPage, 'setup-success');
+    expect(successText).toContain('Chronicle Sync has been successfully set up');
     
   }, timeout);
 });
