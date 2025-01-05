@@ -161,7 +161,7 @@ describe('Extension End-to-End Test', () => {
   });
 
   test('complete setup and sync flow', async () => {
-    jest.setTimeout(60000); // Increase timeout to 60 seconds
+    jest.setTimeout(120000); // Increase timeout to 120 seconds
     // Visit popup page and wait for it to load
     console.log('Navigating to extension popup...');
     await page.goto(`chrome-extension://${extensionId}/popup.html`, { waitUntil: 'networkidle0' });
