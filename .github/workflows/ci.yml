@@ -79,20 +79,44 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
-      - name: Build all packages
+      - name: Build worker
         if: success()
         run: |
           # Build the worker in its own directory
           mkdir -p dist/worker
+          echo "Building worker..."
           pnpm webpack --config webpack.worker.js --mode production --output-path dist/worker
           
+          # Verify worker build succeeded
+          if [ ! -f "dist/worker/worker.js" ]; then
+            echo "Error: Worker build failed - worker.js not found"
+            exit 1
+          fi
+
+      - name: Build dashboard
+        if: success()
+        run: |
           # Build the dashboard and extension
+          echo "Building dashboard..."
           pnpm turbo build
           
           # Move built files to dashboard directory
           mkdir -p dist/dashboard
+          
+          # Check if build produced expected files
+          if [ ! -f "dist/popup.html" ] || [ ! -f "dist/options.html" ]; then
+            echo "Error: Dashboard build failed - HTML files not found"
+            ls -la dist/
+            exit 1
+          fi
+          
+          # Move files to dashboard directory
           mv dist/*.{js,html,json} dist/dashboard/ 2>/dev/null || true
           mv dist/icons dist/dashboard/ 2>/dev/null || true
+          
+          # Verify dashboard files were moved
+          echo "Verifying dashboard files..."
+          ls -la dist/dashboard/
         env:
           NODE_ENV: production
 
