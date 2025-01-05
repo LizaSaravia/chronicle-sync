@@ -47,14 +47,19 @@ describe('Extension End-to-End Test', () => {
     // Launch browser with extension
     browser = await puppeteer.launch({
       headless: 'new',
+      product: 'chrome',
+      channel: 'chrome',
       args: [
         `--disable-extensions-except=${path.join(__dirname, '../dist')}`,
         `--load-extension=${path.join(__dirname, '../dist')}`,
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage'
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-software-rasterizer'
       ],
-      executablePath: process.env.CHROME_PATH || undefined
+      ignoreDefaultArgs: ['--disable-extensions'],
+      executablePath: '/usr/bin/chromium'
     });
 
     // Get extension ID
