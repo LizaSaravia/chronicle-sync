@@ -6,16 +6,21 @@ This guide provides detailed information for developers working on Chronicle Syn
 
 ```
 chronicle-sync/
-├── src/                 # Extension source code
-│   ├── background/      # Service worker scripts
-│   ├── content/         # Content scripts
-│   └── popup/          # Extension popup UI
-├── worker/             # Cloudflare Workers code
-├── cypress/            # E2E tests
-├── tests/              # Unit tests
-├── docs/              # Technical documentation
-│   └── screenshots/   # Generated test screenshots (not in repo)
-└── .github/           # GitHub Actions workflows
+├── src/                    # Source code
+│   ├── backend/           # Backend API
+│   ├── dashboard/         # React dashboard
+│   └── extension/         # Browser extension
+│       ├── icons/        # Extension icons
+│       └── utils/        # Utility functions
+├── worker/                # Cloudflare Workers code
+├── tests/                 # Test suites
+│   ├── dashboard/        # Dashboard tests
+│   ├── e2e/             # End-to-end tests
+│   └── integration/     # Integration tests
+├── docs/                 # Documentation
+│   └── assets/          # Documentation assets
+├── scripts/              # Build and utility scripts
+└── .github/              # GitHub Actions workflows
 ```
 
 ## Development Setup
