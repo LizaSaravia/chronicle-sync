@@ -161,12 +161,22 @@ jobs:
           wrangler pages project create chronicle-sync --production-branch main || true
 
           # Deploy worker first (from worker directory)
-          pushd dist/worker
-          wrangler deploy --config ../../wrangler.worker.toml
-          popd
+          if [ -d "dist/worker" ]; then
+            pushd dist/worker
+            wrangler deploy --config ../../wrangler.worker.toml
+            popd
+          else
+            echo "Error: dist/worker directory does not exist. Build may have failed."
+            exit 1
+          fi
 
           # Then deploy pages
-          wrangler pages deploy dist/dashboard --project-name chronicle-sync --branch staging --commit-dirty=true
+          if [ -d "dist/dashboard" ]; then
+            wrangler pages deploy dist/dashboard --project-name chronicle-sync --branch staging --commit-dirty=true
+          else
+            echo "Error: dist/dashboard directory does not exist. Build may have failed."
+            exit 1
+          fi
 
           # Add custom domains if DOMAIN is set
           if [ ! -z "$DOMAIN" ]; then
@@ -219,12 +229,22 @@ jobs:
           wrangler pages project create chronicle-sync --production-branch main || true
 
           # Deploy worker first (from worker directory)
-          pushd dist/worker
-          wrangler deploy --config ../../wrangler.worker.toml
-          popd
+          if [ -d "dist/worker" ]; then
+            pushd dist/worker
+            wrangler deploy --config ../../wrangler.worker.toml
+            popd
+          else
+            echo "Error: dist/worker directory does not exist. Build may have failed."
+            exit 1
+          fi
 
           # Then deploy pages
-          wrangler pages deploy dist/dashboard --project-name chronicle-sync --branch main --commit-dirty=true
+          if [ -d "dist/dashboard" ]; then
+            wrangler pages deploy dist/dashboard --project-name chronicle-sync --branch main --commit-dirty=true
+          else
+            echo "Error: dist/dashboard directory does not exist. Build may have failed."
+            exit 1
+          fi
 
           # Add custom domains if DOMAIN is set
           if [ ! -z "$DOMAIN" ]; then
