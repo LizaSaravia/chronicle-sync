@@ -1,17 +1,15 @@
 # Chronicle Sync
 
-A secure, cross-platform browser extension for syncing your browsing data across devices.
-Uses cloudflare r2,d1 and kv store where applicable. We create a chrome extension, and soon
-we will use the same code to make an ios safari extension
+A secure, cross-platform browser extension for syncing your browsing data across devices. Built with modern web technologies and powered by Cloudflare's infrastructure (R2, D1, and KV store).
 
 ## Features
 
 - 🔒 End-to-end encryption using password-based keys
-- 🌐 Cross-browser support (Chrome, Firefox)
+- 🌐 Cross-browser support (Chrome, Firefox, Safari iOS coming soon)
 - 📱 Progressive Web App for mobile access
 - 🔄 Real-time sync with offline support
 - 🎯 Selective sync for specific data types
-- allow you to view your history accross your devices
+- 📊 Cross-device history viewing and management
 
 ## Quick Start
 
@@ -26,6 +24,24 @@ we will use the same code to make an ios safari extension
 
 ### Prerequisites
 
-- Node.js 
-- wrangler
+- Node.js 20.x or later
+- Wrangler CLI (for Cloudflare Workers deployment)
+- A Cloudflare account with Workers, R2, D1, and KV access
 
+### Setup
+
+1. Clone the repository
+2. Run `npm install` to install dependencies
+3. Copy `wrangler.example.toml` to `wrangler.toml` and configure your Cloudflare credentials
+4. Run `npm run dev` for local development
+
+### Architecture
+
+Chronicle Sync uses a distributed architecture:
+- Browser Extension: Handles local data and encryption
+- Cloudflare Workers: Backend API and data synchronization
+- Cloudflare R2: Encrypted data storage
+- Cloudflare D1: Metadata and user management
+- Cloudflare KV: Real-time sync coordination
+
+For detailed technical documentation, see the [/docs](/docs) directory.

@@ -1,47 +1,63 @@
-# OpenHands Development Guidelines
+# Chronicle Sync Development Guidelines
 
 ## Repository Structure
+
+```
+chronicle-sync/
+├── src/                 # Extension source code
+│   ├── background/      # Service worker scripts
+│   ├── content/         # Content scripts
+│   └── popup/          # Extension popup UI
+├── worker/             # Cloudflare Workers code
+├── cypress/            # E2E tests
+├── tests/              # Unit tests
+└── docs/              # Technical documentation
+```
 
 ## Development Workflow
 
 1. **Code Changes**
-   - Write tests for new features
-   - Follow existing code patterns
-   - Run tests locally before committing
+   - Write tests for new features using Jest and Cypress
+   - Follow TypeScript best practices and existing patterns
+   - Run `npm test` locally before committing
+   - Use ESLint for code quality (`npm run lint`)
 
 2. **Documentation**
-   - Update relevant docs in /docs
-   - Keep README.md high-level
-   - Document technical details in /docs
+   - Technical details go in /docs
+   - Keep README.md focused on quick start and high-level overview
+   - Document API changes in /docs/api.md
+   - Update security model in /docs/security.md when relevant
 
-3. **CI/CD**
-   - CI runs on all PRs
-   - Staging deploys from staging branch
-   - Production deploys from main branch
-
-## Testing Guidelines
-
-- Unit tests with Jest
-- E2E tests for critical flows
-- Test offline behavior
-- Verify cross-browser compatibility
+3. **CI/CD Pipeline**
+   - Tests run on all PRs (GitHub Actions)
+   - Staging deploys automatically from main branch
+   - Production deploys from version tags (v*)
+   - Monitor deployments in Cloudflare Dashboard
 
 ## Security Requirements
 
-- All data must be encrypted
-- Use password-based encryption
-- No plaintext storage
-- Validate all user input
+- End-to-end encryption using PBKDF2 key derivation
+- All sync data encrypted before storage
+- No plaintext data in Cloudflare storage (R2/D1/KV)
+- Input validation on both client and worker
+- Regular security audits of dependencies
 
 ## Deployment Process
 
-1. Merge to staging for beta testing
-2. Beta testing in staging environment
-3. Merge to main for production
-4. Monitor deployment in AWS Console
+1. **Staging**
+   - Merges to main trigger staging deployment
+   - Creates beta release on GitHub
+   - Uses staging Cloudflare resources
 
-## Extension Publishing
+2. **Production**
+   - Tag a release (v*) for production deployment
+   - Automated deployment to Cloudflare production
+   - Creates GitHub release with changelog
+   - Extension stores must be updated manually
 
-- Chrome Web Store deployment is automated
-- Firefox Add-ons deployment is automated
-- Version numbers follow semver
+## Version Control
+
+- Feature branches from main
+- PRs require passing tests and review
+- Version tags follow semver (vX.Y.Z)
+- Changelog updates required for releases
