@@ -86,6 +86,7 @@ jobs:
       with:
         name: test-artifacts
         path: |
-          tests/screenshots/
+          tests/screenshots/**/*.png
           tests/logs/
         retention-days: 7
+        if-no-files-found: ignore
