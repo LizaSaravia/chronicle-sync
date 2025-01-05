@@ -61,20 +61,27 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function loadHistory() {
     try {
       historyError.style.display = 'none';
+      console.log('Requesting history from background...');
       const response = await chrome.runtime.sendMessage({ type: 'GET_HISTORY' });
+      console.log('Got history response:', response);
       
       if (!response.success) {
-        showError(historyError, 'Failed to load history: ' + response.error);
+        const errorMsg = 'Failed to load history: ' + response.error;
+        console.error(errorMsg);
+        showError(historyError, errorMsg);
         return;
       }
 
       historyList.innerHTML = '';
       if (!response.history || response.history.length === 0) {
+        console.log('No history items found');
         historyList.innerHTML = '<div class="history-item">No history items yet</div>';
         return;
       }
 
+      console.log(`Found ${response.history.length} history items, displaying first 50`);
       response.history.slice(0, 50).forEach(item => {
+        console.log('Adding history item:', { url: item.url, title: item.title });
         const div = document.createElement('div');
         div.className = 'history-item';
         div.innerHTML = `
@@ -86,8 +93,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         historyList.appendChild(div);
       });
+      console.log('History display complete');
     } catch (error) {
-      showError(historyError, 'Failed to load history: ' + error.message);
+      const errorMsg = 'Failed to load history: ' + error.message;
+      console.error(errorMsg, error);
+      showError(historyError, errorMsg);
     }
   }
 });

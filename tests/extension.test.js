@@ -308,13 +308,25 @@ describe('Extension End-to-End Test', () => {
       console.log('Waiting after clear...');
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Add new entries
+      // Add new entries and wait for onVisited events
       console.log('Adding new history entries...');
       const entries = [
         { title: 'Test Page 1', url: 'https://example.com/1' },
         { title: 'Test Page 2', url: 'https://example.com/2' }
       ];
       
+      // Create a promise that resolves when all onVisited events are received
+      const visitedPromises = entries.map(entry => new Promise(resolve => {
+        const listener = (historyItem) => {
+          if (historyItem.url === entry.url) {
+            chrome.history.onVisited.removeListener(listener);
+            resolve();
+          }
+        };
+        chrome.history.onVisited.addListener(listener);
+      }));
+      
+      // Add entries to history
       for (const entry of entries) {
         try {
           await new Promise((resolve, reject) => {
@@ -333,9 +345,14 @@ describe('Extension End-to-End Test', () => {
         }
       }
       
-      // Wait for entries to be added
-      console.log('Waiting after adding entries...');
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Wait for all onVisited events
+      console.log('Waiting for onVisited events...');
+      await Promise.all(visitedPromises);
+      console.log('All onVisited events received');
+      
+      // Wait for entries to be processed by HistoryManager
+      console.log('Waiting for entries to be processed...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
     });
     
     // Wait for history div to be visible
