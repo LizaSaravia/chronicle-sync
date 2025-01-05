@@ -14,7 +14,7 @@
     "test:integration": "./scripts/run-integration-tests.sh",
     "test:integration:staging": "./scripts/run-integration-tests.sh staging",
     "test:integration:prod": "./scripts/run-integration-tests.sh production",
-    "build": "webpack --mode production",
+    "build": "webpack --mode production && webpack --config webpack.worker.js --mode production",
     "build:dashboard": "webpack --config webpack.dashboard.js --mode production",
     "dev": "webpack --mode development --watch",
     "dev:dashboard": "webpack --config webpack.dashboard.js --mode development --watch",

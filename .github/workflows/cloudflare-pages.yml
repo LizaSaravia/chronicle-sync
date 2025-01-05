@@ -63,17 +63,37 @@ jobs:
           PROD_DB_ID: ${{ secrets.PROD_DB_ID }}
           PROD_KV_ID: ${{ secrets.PROD_KV_ID }}
 
-      - name: Deploy Worker (Staging)
+      - name: Validate and Deploy Worker (Staging)
         run: |
-          if [ -d "dist/worker" ]; then
-            pushd dist/worker
-            wrangler deploy --config ../../wrangler.worker.toml
-            popd
-          else
+          if [ ! -d "dist/worker" ]; then
             echo "Error: dist/worker directory does not exist"
             ls -la dist/
             exit 1
           fi
+
+          # Validate worker.js exists and has content
+          if [ ! -f "dist/worker/worker.js" ]; then
+            echo "Error: worker.js file not found in dist/worker/"
+            ls -la dist/worker/
+            exit 1
+          fi
+
+          # Check if worker.js is not empty and is valid JavaScript
+          if [ ! -s "dist/worker/worker.js" ]; then
+            echo "Error: worker.js is empty"
+            exit 1
+          fi
+
+          # Basic syntax check using node
+          if ! node --check dist/worker/worker.js; then
+            echo "Error: worker.js contains syntax errors"
+            exit 1
+          fi
+
+          # Deploy if validation passes
+          pushd dist/worker
+          wrangler deploy --config ../../wrangler.worker.toml
+          popd
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -173,17 +193,37 @@ jobs:
           PROD_DB_ID: ${{ secrets.PROD_DB_ID }}
           PROD_KV_ID: ${{ secrets.PROD_KV_ID }}
 
-      - name: Deploy Worker (Production)
+      - name: Validate and Deploy Worker (Production)
         run: |
-          if [ -d "dist/worker" ]; then
-            pushd dist/worker
-            wrangler deploy --config ../../wrangler.worker.toml
-            popd
-          else
+          if [ ! -d "dist/worker" ]; then
             echo "Error: dist/worker directory does not exist"
             ls -la dist/
             exit 1
           fi
+
+          # Validate worker.js exists and has content
+          if [ ! -f "dist/worker/worker.js" ]; then
+            echo "Error: worker.js file not found in dist/worker/"
+            ls -la dist/worker/
+            exit 1
+          fi
+
+          # Check if worker.js is not empty and is valid JavaScript
+          if [ ! -s "dist/worker/worker.js" ]; then
+            echo "Error: worker.js is empty"
+            exit 1
+          fi
+
+          # Basic syntax check using node
+          if ! node --check dist/worker/worker.js; then
+            echo "Error: worker.js contains syntax errors"
+            exit 1
+          fi
+
+          # Deploy if validation passes
+          pushd dist/worker
+          wrangler deploy --config ../../wrangler.worker.toml
+          popd
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

@@ -184,7 +184,7 @@ jobs:
           name: build-artifacts-${{ github.sha }}
           path: |
             dist/
-          retention-days: 1
+          retention-days: 7  # Increased retention period for better debugging
 
       - name: Create Beta Release
         if: success() && github.ref == 'refs/heads/main'
