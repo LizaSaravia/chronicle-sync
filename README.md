@@ -7,17 +7,19 @@ A secure, cross-platform browser extension for syncing your browsing data across
 <div align="center">
 
 ### Initial Setup
-![Initial Setup](docs/screenshots/setup-flow/initial-popup.png)
+![Initial Setup](https://chroniclesync.xyz/screenshots/setup-flow/initial-popup.png)
 
 ### Password Configuration
-![Password Setup](docs/screenshots/setup-flow/setup-form.png)
+![Password Setup](https://chroniclesync.xyz/screenshots/setup-flow/setup-form.png)
 
 ### History Sync
-![History Sync](docs/screenshots/setup-flow/history-entries.png)
+![History Sync](https://chroniclesync.xyz/screenshots/setup-flow/history-entries.png)
 
 </div>
 
-[View more screenshots](docs/test-results.md) | [View all releases](https://github.com/posix4e/chronicle-sync/releases)
+> **Note:** Screenshots are generated during E2E tests and are available on our [documentation site](https://chroniclesync.xyz/test-results.html). They are not stored in the repository.
+
+[View latest test results & screenshots](https://chroniclesync.xyz/test-results.html) | [View all releases](https://github.com/posix4e/chronicle-sync/releases)
 ## Features
 
 - 🔒 End-to-end encryption using password-based keys

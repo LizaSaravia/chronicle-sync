@@ -11,9 +11,9 @@ Chronicle Sync is a cross-platform browser extension for securely synchronizing 
 ## Documentation
 
 ### Latest Release
-- [Latest Release Test Results](latest-release.md)
-- [Release History](releases/)
+- [Latest Test Results & Screenshots](test-results.html)
+- [Release History](https://github.com/posix4e/chronicle-sync/releases)
 
 ### Development
-- [Unit Tests](https://github.com/posix4e/chronicle-sync/actions/workflows/test.yml)
-- [Test Failures](https://github.com/posix4e/chronicle-sync/actions/workflows/test.yml) (screenshots available in artifacts)
+- [Contributing Guide](https://github.com/posix4e/chronicle-sync/blob/main/CONTRIBUTING.md)
+- [CI/CD Status](https://github.com/posix4e/chronicle-sync/actions/workflows/ci.yml)

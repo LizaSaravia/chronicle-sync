@@ -11,7 +11,9 @@ chronicle-sync/
 ├── worker/             # Cloudflare Workers code
 ├── cypress/            # E2E tests
 ├── tests/              # Unit tests
-└── docs/              # Technical documentation
+├── docs/              # Technical documentation
+│   └── screenshots/   # Generated test screenshots (not in repo)
+└── .github/           # GitHub Actions workflows
 ```
 
 ## Development Workflow
@@ -37,15 +39,24 @@ chronicle-sync/
    - Use ESLint for code quality (`npm run lint`)
    - Format code with Prettier (`npm run format`)
 
-2. **Documentation**
+2. **Documentation and Screenshots**
    - Technical details go in /docs
    - Keep README.md focused on quick start and high-level overview
    - Document API changes in /docs/api.md
    - Update security model in /docs/security.md when relevant
+   - Screenshots are automatically generated during E2E tests:
+     - Never commit screenshots to the repository
+     - Screenshots are stored as GitHub Actions artifacts
+     - Deployed to chroniclesync.xyz via GitHub Pages
+     - Always use https://chroniclesync.xyz/screenshots/... URLs in documentation
 
 3. **CI/CD Pipeline**
    - Tests run on all PRs (GitHub Actions)
-   - Staging deploys automatically from main branch
+   - E2E tests generate screenshots and store as artifacts
+   - Main branch merges trigger:
+     - Staging deployment to Cloudflare
+     - Screenshot deployment to chroniclesync.xyz
+     - Documentation updates with latest test results
    - Production deploys from version tags (v*)
    - Monitor deployments in Cloudflare Dashboard
 
