@@ -1,0 +1,194 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  workflow_run:
+    workflows: ["CI/CD"]
+    types:
+      - completed
+    branches: [main, staging]
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  deploy-staging:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Install Wrangler
+        run: npm install -g wrangler@latest
+
+      - name: Generate Wrangler Config
+        run: ./scripts/generate-wrangler-config.sh
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          STAGING_DB_ID: ${{ secrets.STAGING_DB_ID }}
+          STAGING_KV_ID: ${{ secrets.STAGING_KV_ID }}
+
+      - name: Deploy Worker (Staging)
+        run: |
+          if [ -d "dist/worker" ]; then
+            pushd dist/worker
+            wrangler deploy --config ../../wrangler.worker.toml
+            popd
+          else
+            echo "Error: dist/worker directory does not exist"
+            ls -la dist/
+            exit 1
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Deploy Pages (Staging)
+        run: |
+          if [ -d "dist/dashboard" ]; then
+            wrangler pages deploy dist/dashboard \
+              --project-name chronicle-sync \
+              --branch staging \
+              --commit-dirty=true
+          else
+            echo "Error: dist/dashboard directory does not exist"
+            ls -la dist/
+            exit 1
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Configure DNS (Staging)
+        if: env.DOMAIN != ''
+        run: |
+          # Add staging subdomain
+          wrangler pages domain add chronicle-sync "staging.$DOMAIN" || true
+          
+          # Configure DNS for staging
+          ZONE_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$DOMAIN" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Content-Type: application/json" | jq -r '.result[0].id')
+          
+          if [ ! -z "$ZONE_ID" ]; then
+            # Create/update CNAME record for staging
+            curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              --data "{
+                \"type\": \"CNAME\",
+                \"name\": \"staging\",
+                \"content\": \"staging.chronicle-sync.pages.dev\",
+                \"proxied\": true
+              }"
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          DOMAIN: ${{ secrets.CLOUDFLARE_DOMAIN }}
+
+  deploy-production:
+    if: github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_branch, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Install Wrangler
+        run: npm install -g wrangler@latest
+
+      - name: Generate Wrangler Config
+        run: ./scripts/generate-wrangler-config.sh
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PROD_DB_ID: ${{ secrets.PROD_DB_ID }}
+          PROD_KV_ID: ${{ secrets.PROD_KV_ID }}
+
+      - name: Deploy Worker (Production)
+        run: |
+          if [ -d "dist/worker" ]; then
+            pushd dist/worker
+            wrangler deploy --config ../../wrangler.worker.toml
+            popd
+          else
+            echo "Error: dist/worker directory does not exist"
+            ls -la dist/
+            exit 1
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Deploy Pages (Production)
+        run: |
+          if [ -d "dist/dashboard" ]; then
+            wrangler pages deploy dist/dashboard \
+              --project-name chronicle-sync \
+              --branch main \
+              --commit-dirty=true
+          else
+            echo "Error: dist/dashboard directory does not exist"
+            ls -la dist/
+            exit 1
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Configure DNS (Production)
+        if: env.DOMAIN != ''
+        run: |
+          # Add production domain
+          wrangler pages domain add chronicle-sync "$DOMAIN" || true
+          
+          # Configure DNS for production
+          ZONE_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$DOMAIN" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Content-Type: application/json" | jq -r '.result[0].id')
+          
+          if [ ! -z "$ZONE_ID" ]; then
+            # Create/update CNAME record for production
+            curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              --data "{
+                \"type\": \"CNAME\",
+                \"name\": \"@\",
+                \"content\": \"chronicle-sync.pages.dev\",
+                \"proxied\": true
+              }"
+
+            # Also add www subdomain
+            curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              --data "{
+                \"type\": \"CNAME\",
+                \"name\": \"www\",
+                \"content\": \"chronicle-sync.pages.dev\",
+                \"proxied\": true
+              }"
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          DOMAIN: ${{ secrets.CLOUDFLARE_DOMAIN }}

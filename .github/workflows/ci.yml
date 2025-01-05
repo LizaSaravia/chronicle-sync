@@ -22,7 +22,7 @@ env:
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 
 jobs:
-  test-and-deploy:
+  test-and-build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -177,74 +177,14 @@ jobs:
         with:
           artifact_name: github-pages-${{ github.run_id }}
 
-      - name: Install Wrangler
-        if: success() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
-        run: pnpm add -g wrangler@latest
-
-      - name: Generate Wrangler Config
-        if: success() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
-        run: ./scripts/generate-wrangler-config.sh
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          PROD_DB_ID: ${{ secrets.PROD_DB_ID }}
-          PROD_KV_ID: ${{ secrets.PROD_KV_ID }}
-          STAGING_DB_ID: ${{ secrets.STAGING_DB_ID }}
-          STAGING_KV_ID: ${{ secrets.STAGING_KV_ID }}
-
-      - name: Deploy to Cloudflare Pages (Staging)
-        if: success() && github.ref == 'refs/heads/main'
-        run: |
-          # Create project if it doesn't exist (this is idempotent)
-          wrangler pages project create chronicle-sync --production-branch main || true
-
-          # Deploy worker first (from worker directory)
-          if [ -d "dist/worker" ]; then
-            pushd dist/worker
-            wrangler deploy --config ../../wrangler.worker.toml
-            popd
-          else
-            echo "Error: dist/worker directory does not exist. Build may have failed."
-            exit 1
-          fi
-
-          # Then deploy pages
-          if [ -d "dist/dashboard" ]; then
-            wrangler pages deploy dist/dashboard --project-name chronicle-sync --branch staging --commit-dirty=true
-          else
-            echo "Error: dist/dashboard directory does not exist. Build may have failed."
-            exit 1
-          fi
-
-          # Add custom domains if DOMAIN is set
-          if [ ! -z "$DOMAIN" ]; then
-            # Add staging subdomain
-            wrangler pages domain add chronicle-sync "staging.$DOMAIN" || true
-            
-            # Configure DNS for staging
-            ZONE_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$DOMAIN" \
-              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-              -H "Content-Type: application/json" | jq -r '.result[0].id')
-            
-            if [ ! -z "$ZONE_ID" ]; then
-              # Create/update CNAME record for staging
-              curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
-                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-                -H "Content-Type: application/json" \
-                --data "{
-                  \"type\": \"CNAME\",
-                  \"name\": \"staging\",
-                  \"content\": \"staging.chronicle-sync.pages.dev\",
-                  \"proxied\": true
-                }"
-            fi
-          fi
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          DOMAIN: ${{ secrets.CLOUDFLARE_DOMAIN }}
-
-
+      - name: Upload build artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            dist/
+          retention-days: 1
 
       - name: Create Beta Release
         if: success() && github.ref == 'refs/heads/main'
@@ -260,71 +200,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Deploy to Cloudflare Pages (Production)
-        if: success() && startsWith(github.ref, 'refs/tags/v')
-        run: |
-          # Create project if it doesn't exist (this is idempotent)
-          wrangler pages project create chronicle-sync --production-branch main || true
-
-          # Deploy worker first (from worker directory)
-          if [ -d "dist/worker" ]; then
-            pushd dist/worker
-            wrangler deploy --config ../../wrangler.worker.toml
-            popd
-          else
-            echo "Error: dist/worker directory does not exist. Build may have failed."
-            exit 1
-          fi
-
-          # Then deploy pages
-          if [ -d "dist/dashboard" ]; then
-            wrangler pages deploy dist/dashboard --project-name chronicle-sync --branch main --commit-dirty=true
-          else
-            echo "Error: dist/dashboard directory does not exist. Build may have failed."
-            exit 1
-          fi
-
-          # Add custom domains if DOMAIN is set
-          if [ ! -z "$DOMAIN" ]; then
-            # Add production domain
-            wrangler pages domain add chronicle-sync "$DOMAIN" || true
-            
-            # Configure DNS for production
-            ZONE_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$DOMAIN" \
-              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-              -H "Content-Type: application/json" | jq -r '.result[0].id')
-            
-            if [ ! -z "$ZONE_ID" ]; then
-              # Create/update CNAME record for production
-              curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
-                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-                -H "Content-Type: application/json" \
-                --data "{
-                  \"type\": \"CNAME\",
-                  \"name\": \"@\",
-                  \"content\": \"chronicle-sync.pages.dev\",
-                  \"proxied\": true
-                }"
-
-              # Also add www subdomain
-              curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
-                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-                -H "Content-Type: application/json" \
-                --data "{
-                  \"type\": \"CNAME\",
-                  \"name\": \"www\",
-                  \"content\": \"chronicle-sync.pages.dev\",
-                  \"proxied\": true
-                }"
-            fi
-          fi
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          DOMAIN: ${{ secrets.CLOUDFLARE_DOMAIN }}
-
-
-
       - name: Create Production Release
         if: success() && startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v1
@@ -337,7 +212,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   test-staging-integration:
-    needs: test-and-deploy
+    needs: test-and-build
     if: success() && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -385,7 +260,7 @@ jobs:
           if-no-files-found: ignore
 
   test-production-integration:
-    needs: test-and-deploy
+    needs: test-and-build
     if: success() && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     timeout-minutes: 15
