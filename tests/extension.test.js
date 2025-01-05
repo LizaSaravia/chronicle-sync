@@ -20,7 +20,8 @@ describe('Extension End-to-End Test', () => {
    * @param {string} description - Description of the screenshot
    */
   async function takeScreenshot(targetPage, description) {
-    if (process.env.CI) return; // Skip screenshots in CI
+    // Only take screenshots in CI if explicitly requested for docs
+    if (process.env.CI && !process.env.SCREENSHOTS_FOR_DOCS) return;
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const fileName = `${timestamp}_${description}.png`;

@@ -81,50 +81,12 @@ jobs:
         CHROME_PATH: /usr/bin/google-chrome
     
     - name: Upload test artifacts
+      if: failure()
       uses: actions/upload-artifact@v4
       with:
-        name: test-artifacts
+        name: test-failure-artifacts
         path: |
           tests/screenshots/**/*.png
           tests/logs/
         retention-days: 7
         if-no-files-found: ignore
-
-    - name: Copy screenshots to docs
-      if: success()
-      run: |
-        mkdir -p docs/test-results/screenshots
-        cp -r tests/screenshots/* docs/test-results/screenshots/ || true
-        
-    - name: Generate screenshots index
-      if: success()
-      run: |
-        echo "# Test Screenshots" > docs/test-results/index.md
-        echo "" >> docs/test-results/index.md
-        echo "Last updated: $(date)" >> docs/test-results/index.md
-        echo "" >> docs/test-results/index.md
-        
-        for dir in docs/test-results/screenshots/*; do
-          if [ -d "$dir" ]; then
-            test_name=$(basename "$dir")
-            echo "## $test_name" >> docs/test-results/index.md
-            echo "" >> docs/test-results/index.md
-            
-            for img in "$dir"/*.png; do
-              if [ -f "$img" ]; then
-                name=$(basename "$img")
-                rel_path="screenshots/$test_name/$name"
-                echo "### ${name%.png}" >> docs/test-results/index.md
-                echo "![${name%.png}]($rel_path)" >> docs/test-results/index.md
-                echo "" >> docs/test-results/index.md
-              fi
-            done
-          fi
-        done
-
-    - name: Deploy to GitHub Pages
-      if: success() && github.ref == 'refs/heads/main'
-      uses: JamesIves/github-pages-deploy-action@v4
-      with:
-        folder: docs
-        clean: false
