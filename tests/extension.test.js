@@ -9,7 +9,6 @@ const { CryptoManager } = require('../src/extension/utils/crypto');
  */
 
 describe('Extension End-to-End Test', () => {
-  jest.setTimeout(60000); // Increase timeout to 60 seconds
   let browser;
   let page;
   let extensionId;
