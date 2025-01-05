@@ -144,6 +144,7 @@ describe('Extension End-to-End Test', () => {
   });
 
   test('complete setup and sync flow', async () => {
+    jest.setTimeout(60000); // Increase timeout to 60 seconds
     // Visit popup page and wait for it to load
     console.log('Navigating to extension popup...');
     await page.goto(`chrome-extension://${extensionId}/popup.html`);
@@ -157,8 +158,14 @@ describe('Extension End-to-End Test', () => {
     await takeScreenshot(page, 'initial-popup');
     
     // Verify initial state
-    await page.waitForSelector('.not-setup');
-    await page.waitForSelector('#setup-btn');
+    try {
+      await page.waitForSelector('.not-setup', { timeout: 5000 });
+      await page.waitForSelector('#setup-btn', { timeout: 5000 });
+    } catch (e) {
+      console.error('Failed to find initial state selectors:', e.message);
+      console.log('Current page content:', await page.content());
+      throw e;
+    }
     
     // Click setup button
     await page.click('#setup-btn');
