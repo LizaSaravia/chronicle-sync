@@ -68,9 +68,8 @@ jobs:
       - name: Run E2E tests and generate screenshots
         if: success()
         run: |
-          mkdir -p docs/screenshots/setup-flow
+          mkdir -p tests/screenshots/setup-flow
           xvfb-run --auto-servernum npm run test:e2e
-          cp -r tests/screenshots/* docs/screenshots/ || true
         env:
           CI: true
           DISPLAY: :99
@@ -78,18 +77,25 @@ jobs:
           SCREENSHOTS_FOR_DOCS: true
 
       - name: Upload test artifacts
-        if: failure()
+        if: always()  # Changed from failure() to always() to preserve screenshots
         uses: actions/upload-artifact@v4
         with:
-          name: test-failure-artifacts
+          name: test-artifacts
           path: |
             tests/screenshots/**/*.png
             tests/logs/
-          retention-days: 7
+          retention-days: 14
           if-no-files-found: ignore
 
+      - name: Download test artifacts for docs
+        if: success() && github.ref == 'refs/heads/main'
+        uses: actions/download-artifact@v4
+        with:
+          name: test-artifacts
+          path: docs/screenshots
+
       - name: Update documentation
-        if: success() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+        if: success() && github.ref == 'refs/heads/main'
         run: |
           echo "# Latest Test Results" > docs/test-results.md
           echo "" >> docs/test-results.md
@@ -115,15 +121,6 @@ jobs:
               done
             fi
           done
-
-      - name: Commit documentation changes
-        if: success() && github.ref == 'refs/heads/main'
-        run: |
-          git config --local user.email "openhands@all-hands.dev"
-          git config --local user.name "openhands"
-          git add docs
-          git commit -m "Update documentation with latest screenshots" || exit 0
-          git push
 
       - name: Package Extension
         if: success() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
