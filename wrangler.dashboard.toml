@@ -1,6 +1,7 @@
 name = "chronicle-sync-dashboard"
 main = "worker/dashboard.js"
 compatibility_date = "2024-01-05"
+pages_build_output_dir = "dist/dashboard"
 
 [env.staging]
 name = "chronicle-sync-dashboard-staging"
