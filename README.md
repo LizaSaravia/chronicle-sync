@@ -6,20 +6,17 @@ A secure, cross-platform browser extension for syncing your browsing data across
 
 <div align="center">
 
-### Initial Setup
-![Initial Setup](https://chroniclesync.xyz/screenshots/setup-flow/initial-popup.png)
+### Latest Screenshots
+Screenshots are generated during E2E tests and are available as artifacts in the [latest successful CI run](https://github.com/posix4e/chronicle-sync/actions/workflows/ci.yml?query=branch%3Amain+is%3Asuccess).
 
-### Password Configuration
-![Password Setup](https://chroniclesync.xyz/screenshots/setup-flow/setup-form.png)
-
-### History Sync
-![History Sync](https://chroniclesync.xyz/screenshots/setup-flow/history-entries.png)
+To view the screenshots:
+1. Click the link above to view the latest successful run
+2. Scroll down to "Artifacts"
+3. Download the "test-artifacts" zip file
 
 </div>
 
-> **Note:** Screenshots are generated during E2E tests and are available on our [documentation site](https://chroniclesync.xyz/test-results.html). They are not stored in the repository.
-
-[View latest test results & screenshots](https://chroniclesync.xyz/test-results.html) | [View all releases](https://github.com/posix4e/chronicle-sync/releases)
+[View CI/CD Status](https://github.com/posix4e/chronicle-sync/actions/workflows/ci.yml) | [View all releases](https://github.com/posix4e/chronicle-sync/releases)
 ## Features
 
 - 🔒 End-to-end encryption using password-based keys

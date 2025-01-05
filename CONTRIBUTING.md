@@ -14,17 +14,13 @@ Screenshots are automatically generated during E2E tests and are handled as foll
 
 1. **Generation**: Screenshots are captured during E2E test runs using Playwright
 2. **Storage**: Screenshots are saved as artifacts in GitHub Actions
-3. **Deployment**: When changes are merged to main:
-   - Screenshots are downloaded from artifacts
-   - `test-results.md` is generated with links to the screenshots
-   - Everything is deployed to our documentation site at chroniclesync.xyz
 
-> **Important:** Screenshots should never be committed to the repository. They are automatically generated and hosted on our documentation site.
+> **Important:** Screenshots should never be committed to the repository. They are automatically generated and available as artifacts in GitHub Actions.
 
 #### Viewing Screenshots
 
-- Latest screenshots: https://chroniclesync.xyz/test-results.html
-- Screenshots in PRs: Available as artifacts in GitHub Actions workflow runs
+- Latest screenshots: Visit the [latest successful CI run](https://github.com/posix4e/chronicle-sync/actions/workflows/ci.yml?query=branch%3Amain+is%3Asuccess) and download the "test-artifacts" zip
+- PR screenshots: Available as artifacts in the PR's workflow run
 
 #### Adding New Screenshots
 
@@ -39,14 +35,8 @@ To add new screenshots to the documentation:
 
 2. The CI workflow will automatically:
    - Generate the screenshots during test runs
-   - Upload them as artifacts
-   - Deploy them to the documentation site
-   - Update test-results.md with links to the new screenshots
-
-3. To reference screenshots in documentation:
-   - Use the URL pattern: `https://chroniclesync.xyz/screenshots/...`
-   - Example: `![Feature Name](https://chroniclesync.xyz/screenshots/your-feature/description.png)`
-   - Never reference screenshots as if they were in the repository
+   - Upload them as artifacts in GitHub Actions
+   - Make them available for download from the workflow run
 
 ## Pull Request Process
 

@@ -88,43 +88,7 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
-      - name: Download test artifacts for docs
-        if: success() && github.ref == 'refs/heads/main'
-        uses: actions/download-artifact@v4
-        with:
-          name: test-artifacts
-          path: docs/screenshots
-
-      - name: Update documentation
-        if: success() && github.ref == 'refs/heads/main'
-        run: |
-          echo "# Latest Test Results" > docs/test-results.md
-          echo "" >> docs/test-results.md
-          echo "Last updated: $(date)" >> docs/test-results.md
-          echo "" >> docs/test-results.md
-          echo "> **Note:** Screenshots are generated during test runs and are available on GitHub Pages. They are not stored in the main repository." >> docs/test-results.md
-          echo "" >> docs/test-results.md
-          echo "## Test Screenshots" >> docs/test-results.md
-          echo "" >> docs/test-results.md
-          
-          for dir in docs/screenshots/*; do
-            if [ -d "$dir" ]; then
-              test_name=$(basename "$dir")
-              echo "### $test_name" >> docs/test-results.md
-              echo "" >> docs/test-results.md
-              
-              for img in "$dir"/*.png; do
-                if [ -f "$img" ]; then
-                  name=$(basename "$img")
-                  # Use custom domain URL for screenshots
-                  pages_url="https://chroniclesync.xyz/screenshots/$test_name/$name"
-                  echo "#### ${name%.png}" >> docs/test-results.md
-                  echo "![${name%.png}]($pages_url)" >> docs/test-results.md
-                  echo "" >> docs/test-results.md
-                fi
-              done
-            fi
-          done
+      # Screenshots are now available directly from GitHub Actions artifacts
 
       - name: Package Extension
         if: success() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
