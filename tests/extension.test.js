@@ -9,6 +9,7 @@ const { CryptoManager } = require('../src/extension/utils/crypto');
  */
 
 describe('Extension End-to-End Test', () => {
+  jest.setTimeout(60000); // Increase timeout to 60 seconds
   let browser;
   let page;
   let extensionId;
@@ -144,7 +145,6 @@ describe('Extension End-to-End Test', () => {
   });
 
   test('complete setup and sync flow', async () => {
-    jest.setTimeout(60000);
     // Visit popup page and wait for it to load
     console.log('Navigating to extension popup...');
     await page.goto(`chrome-extension://${extensionId}/popup.html`, { waitUntil: 'networkidle0' });
