@@ -6,6 +6,13 @@ on:
   pull_request:
     branches: [main, staging]
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      screenshots:
+        description: 'Generate screenshots for docs'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -79,14 +86,15 @@ jobs:
         CI: true
         DISPLAY: :99
         CHROME_PATH: /usr/bin/google-chrome
+        SCREENSHOTS_FOR_DOCS: ${{ inputs.screenshots }}
     
     - name: Upload test artifacts
-      if: failure()
+      if: failure() || inputs.screenshots
       uses: actions/upload-artifact@v4
       with:
-        name: test-failure-artifacts
+        name: ${{ inputs.screenshots && 'screenshots' || 'test-failure-artifacts' }}
         path: |
           tests/screenshots/**/*.png
           tests/logs/
-        retention-days: 7
+        retention-days: ${{ inputs.screenshots && 14 || 7 }}
         if-no-files-found: ignore

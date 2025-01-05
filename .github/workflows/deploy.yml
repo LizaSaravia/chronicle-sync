@@ -40,24 +40,14 @@ jobs:
     - name: Build worker
       run: npx webpack --config webpack.worker.js --mode production
       
-    - name: Install Chrome
-      uses: browser-actions/setup-chrome@v1
+    - name: Run tests and generate screenshots
+      uses: ./.github/workflows/test.yml
       with:
-        chrome-version: stable
-    
-    - name: Run E2E tests for screenshots
-      run: xvfb-run --auto-servernum npm run test:e2e
-      env:
-        DISPLAY: :99
-        CHROME_PATH: /usr/bin/google-chrome
-        SCREENSHOTS_FOR_DOCS: true
+        screenshots: true
     
     - name: Update documentation
       run: |
-        # Create directory structure
         mkdir -p docs/screenshots/setup-flow
-        
-        # Copy screenshots
         cp -r tests/screenshots/* docs/screenshots/ || true
     
     - name: Package Extension
