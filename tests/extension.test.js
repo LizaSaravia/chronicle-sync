@@ -273,8 +273,5 @@ describe('Extension End-to-End Test', () => {
       throw e;
     }
     
-    // Take screenshot after setup
-    await takeScreenshot(page, 'setup-complete');
-    
   }, process.env.CI ? 60000 : 30000);
 });
