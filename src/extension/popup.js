@@ -48,6 +48,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       const response = await chrome.runtime.sendMessage({ type: 'FORCE_SYNC' });
       if (response.success) {
+        // Wait a bit for the sync to complete and database to update
+        await new Promise(resolve => setTimeout(resolve, 2000));
         await loadHistory();
       } else {
         showError(historyError, 'Sync failed: ' + response.error);
