@@ -9,3 +9,7 @@ cypress.env.json
 extension.zip
 tests/screenshots/
 docs/screenshots/
+
+# Generated wrangler config files
+wrangler.toml
+wrangler.dashboard.toml
