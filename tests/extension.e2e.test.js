@@ -49,11 +49,14 @@ describe('Extension End-to-End Test', () => {
       return;
     }
 
+    // Log extension directory contents
+    const distPath = path.join(__dirname, '../dist');
+    console.log('Extension directory contents:', await fs.readdir(distPath));
+
     // Launch browser with extension
     browser = await puppeteer.launch({
-      headless: 'new',
+      headless: false, // Use non-headless mode for extension testing
       product: 'chrome',
-      channel: 'chrome',
       args: [
         `--disable-extensions-except=${path.join(__dirname, '../dist')}`,
         `--load-extension=${path.join(__dirname, '../dist')}`,
@@ -64,7 +67,7 @@ describe('Extension End-to-End Test', () => {
         '--disable-software-rasterizer'
       ],
       ignoreDefaultArgs: ['--disable-extensions'],
-      executablePath: process.env.CHROME_PATH || '/usr/bin/chromium'
+      executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome'
     });
 
     // Get extension ID
