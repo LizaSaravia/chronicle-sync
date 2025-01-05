@@ -65,14 +65,17 @@ jobs:
         with:
           chrome-version: stable
 
-      - name: Run E2E tests
+      - name: Run E2E tests and generate screenshots
         if: success()
-        run: xvfb-run --auto-servernum npm run test:e2e
+        run: |
+          mkdir -p docs/screenshots/setup-flow
+          xvfb-run --auto-servernum npm run test:e2e
+          cp -r tests/screenshots/* docs/screenshots/ || true
         env:
           CI: true
           DISPLAY: :99
           CHROME_PATH: /usr/bin/google-chrome
-          SCREENSHOTS_FOR_DOCS: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
+          SCREENSHOTS_FOR_DOCS: true
 
       - name: Upload test artifacts
         if: failure()
@@ -88,9 +91,6 @@ jobs:
       - name: Update documentation
         if: success() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
         run: |
-          mkdir -p docs/screenshots/setup-flow
-          cp -r tests/screenshots/* docs/screenshots/ || true
-          
           echo "# Latest Test Results" > docs/test-results.md
           echo "" >> docs/test-results.md
           echo "Last updated: $(date)" >> docs/test-results.md
