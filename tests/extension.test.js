@@ -115,16 +115,40 @@ describe('Extension End-to-End Test', () => {
     // Clear storage and databases
     const context = browser.defaultBrowserContext();
     await context.clearPermissionOverrides();
-    await page.evaluate(() => {
-      localStorage.clear();
-      indexedDB.deleteDatabase('chronicle-sync');
-      chrome.storage.local.clear();
-    });
+    
+    // Navigate to extension page first to ensure we have the right permissions
+    await page.goto(`chrome-extension://${extensionId}/popup.html`);
+    
+    // Grant necessary permissions
+    await context.overridePermissions(`chrome-extension://${extensionId}`, [
+      'clipboard-read',
+      'clipboard-write'
+    ]);
+    
+    try {
+      await page.evaluate(() => {
+        localStorage.clear();
+        indexedDB.deleteDatabase('chronicle-sync');
+        if (chrome && chrome.storage && chrome.storage.local) {
+          chrome.storage.local.clear();
+        }
+      });
+    } catch (e) {
+      console.log('Warning: Could not clear all storage:', e.message);
+    }
   });
 
   test('complete setup and sync flow', async () => {
-    // Visit popup page
+    // Visit popup page and wait for it to load
+    console.log('Navigating to extension popup...');
     await page.goto(`chrome-extension://${extensionId}/popup.html`);
+    console.log('Waiting for extension to initialize...');
+    await page.waitForTimeout(1000); // Give the extension time to initialize
+    
+    // Log the page content to help debug issues
+    const content = await page.content();
+    console.log('Page content:', content.slice(0, 500) + '...');
+    
     await takeScreenshot(page, 'initial-popup');
     
     // Verify initial state
