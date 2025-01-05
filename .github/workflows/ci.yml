@@ -1,9 +1,11 @@
-name: Deploy
+name: CI/CD
 
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
     tags: ['v*']
+  pull_request:
+    branches: [main, staging]
   workflow_dispatch:
 
 permissions:
@@ -16,34 +18,75 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  test-and-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20.x'
           cache: 'npm'
-      
+
       - run: npm ci
-      
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Run unit tests
+        run: npm test
+        env:
+          CI: true
+
+      - name: Upload test coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
+
       - name: Build extension
+        if: success()
         run: npm run build
         env:
           NODE_ENV: production
-      
+
       - name: Build worker
+        if: success()
         run: npx webpack --config webpack.worker.js --mode production
-      
-      - name: Run tests and generate screenshots
-        uses: ./.github/workflows/test.yml
+
+      - name: Install Chrome
+        if: success()
+        uses: browser-actions/setup-chrome@v1
         with:
-          screenshots: true
-      
+          chrome-version: stable
+
+      - name: Run E2E tests
+        if: success()
+        run: xvfb-run --auto-servernum npm run test:e2e
+        env:
+          CI: true
+          DISPLAY: :99
+          CHROME_PATH: /usr/bin/google-chrome
+          SCREENSHOTS_FOR_DOCS: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
+
+      - name: Upload test artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-failure-artifacts
+          path: |
+            tests/screenshots/**/*.png
+            tests/logs/
+          retention-days: 7
+          if-no-files-found: ignore
+
       - name: Update documentation
+        if: success() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
         run: |
           mkdir -p docs/screenshots/setup-flow
           cp -r tests/screenshots/* docs/screenshots/ || true
@@ -72,66 +115,36 @@ jobs:
               done
             fi
           done
-      
+
       - name: Commit documentation changes
-        if: github.ref == 'refs/heads/main'
+        if: success() && github.ref == 'refs/heads/main'
         run: |
           git config --local user.email "openhands@all-hands.dev"
           git config --local user.name "openhands"
           git add docs
           git commit -m "Update documentation with latest screenshots" || exit 0
           git push
-      
+
       - name: Package Extension
+        if: success() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
         run: |
           cd dist
           zip -r ../chronicle-sync.zip *
-      
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-artifact
-          path: |
-            chronicle-sync.zip
-            dist/
-            worker/
-          retention-days: 1
 
-  deploy-pages:
-    needs: build
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v4
-      
-      - uses: actions/configure-pages@v4
-      
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: './docs'
-      
-      - id: deployment
+      - name: Configure GitHub Pages
+        if: success() && github.ref == 'refs/heads/main'
+        uses: actions/configure-pages@v4
+
+      - name: Deploy to GitHub Pages
+        if: success() && github.ref == 'refs/heads/main'
         uses: actions/deploy-pages@v4
 
-  deploy-staging:
-    needs: build
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment: staging
-    steps:
-      - uses: actions/checkout@v4
-      
-      - uses: actions/download-artifact@v4
-        with:
-          name: build-artifact
-      
       - name: Install Wrangler
+        if: success() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
         run: npm install -g wrangler@latest
-      
+
       - name: Generate Wrangler Config
+        if: success() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
         run: ./scripts/generate-wrangler-config.sh
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -140,14 +153,16 @@ jobs:
           PROD_KV_ID: ${{ secrets.PROD_KV_ID }}
           STAGING_DB_ID: ${{ secrets.STAGING_DB_ID }}
           STAGING_KV_ID: ${{ secrets.STAGING_KV_ID }}
-      
+
       - name: Deploy to Cloudflare Staging
+        if: success() && github.ref == 'refs/heads/main'
         run: wrangler deploy --env staging
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      
+
       - name: Create Beta Release
+        if: success() && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v1
         with:
           files: chronicle-sync.zip
@@ -160,36 +175,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  deploy-production:
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - uses: actions/checkout@v4
-      
-      - uses: actions/download-artifact@v4
-        with:
-          name: build-artifact
-      
-      - name: Install Wrangler
-        run: npm install -g wrangler@latest
-      
-      - name: Generate Wrangler Config
-        run: ./scripts/generate-wrangler-config.sh
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          PROD_DB_ID: ${{ secrets.PROD_DB_ID }}
-          PROD_KV_ID: ${{ secrets.PROD_KV_ID }}
-      
       - name: Deploy to Cloudflare Production
+        if: success() && startsWith(github.ref, 'refs/tags/v')
         run: wrangler deploy --env production
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      
+
       - name: Create Production Release
+        if: success() && startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v1
         with:
           files: chronicle-sync.zip
