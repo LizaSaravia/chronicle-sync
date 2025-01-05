@@ -79,31 +79,36 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
-      - name: Build dashboard
+      - name: Build extension and dashboard
         if: success()
         run: |
-          # Build the dashboard and extension
-          echo "Building dashboard..."
-          pnpm turbo build
+          # First build the extension
+          echo "Building extension..."
+          pnpm webpack --config webpack.config.js --mode production
           
-          # Create dashboard directory and move files
-          mkdir -p dist/dashboard
-          
-          # Check if build produced expected files
+          # Check if extension build produced expected files
           if [ ! -f "dist/popup.html" ] || [ ! -f "dist/options.html" ]; then
-            echo "Error: Dashboard build failed - HTML files not found"
+            echo "Error: Extension build failed - HTML files not found"
             ls -la dist/
             exit 1
           fi
           
-          # Move all dashboard files except worker directory
-          find dist -maxdepth 1 -type f -exec mv {} dist/dashboard/ \;
+          # Create extension directory and move extension files
+          mkdir -p dist/extension
+          mv dist/*.js dist/*.html dist/manifest.json dist/extension/
           if [ -d "dist/icons" ]; then
-            mv dist/icons dist/dashboard/
+            mv dist/icons dist/extension/
           fi
           
-          # Verify dashboard files were moved
-          echo "Verifying dashboard files..."
+          # Now build the dashboard
+          echo "Building dashboard..."
+          pnpm webpack --config webpack.dashboard.js --mode production
+          
+          # Verify both builds succeeded
+          echo "Verifying build outputs..."
+          echo "Extension files:"
+          ls -la dist/extension/
+          echo "Dashboard files:"
           ls -la dist/dashboard/
         env:
           NODE_ENV: production

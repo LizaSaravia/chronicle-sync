@@ -101,12 +101,15 @@ jobs:
       - name: Deploy Pages (Staging)
         run: |
           if [ -d "dist/dashboard" ]; then
+            echo "Deploying dashboard files:"
+            ls -la dist/dashboard/
             wrangler pages deploy dist/dashboard \
               --project-name chronicle-sync \
               --branch staging \
               --commit-dirty=true
           else
             echo "Error: dist/dashboard directory does not exist"
+            echo "Contents of dist directory:"
             ls -la dist/
             exit 1
           fi
@@ -231,12 +234,15 @@ jobs:
       - name: Deploy Pages (Production)
         run: |
           if [ -d "dist/dashboard" ]; then
+            echo "Deploying dashboard files:"
+            ls -la dist/dashboard/
             wrangler pages deploy dist/dashboard \
               --project-name chronicle-sync \
               --branch main \
               --commit-dirty=true
           else
             echo "Error: dist/dashboard directory does not exist"
+            echo "Contents of dist directory:"
             ls -la dist/
             exit 1
           fi
