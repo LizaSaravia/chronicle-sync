@@ -31,12 +31,16 @@ jobs:
         run: npm install -g wrangler@latest
 
       - name: Generate Wrangler Config
-        run: ./scripts/generate-wrangler-config.sh
+        run: |
+          chmod +x ./scripts/generate-wrangler-config.sh
+          ./scripts/generate-wrangler-config.sh
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           STAGING_DB_ID: ${{ secrets.STAGING_DB_ID }}
           STAGING_KV_ID: ${{ secrets.STAGING_KV_ID }}
+          PROD_DB_ID: ${{ secrets.PROD_DB_ID }}
+          PROD_KV_ID: ${{ secrets.PROD_KV_ID }}
 
       - name: Deploy Worker (Staging)
         run: |
@@ -116,10 +120,14 @@ jobs:
         run: npm install -g wrangler@latest
 
       - name: Generate Wrangler Config
-        run: ./scripts/generate-wrangler-config.sh
+        run: |
+          chmod +x ./scripts/generate-wrangler-config.sh
+          ./scripts/generate-wrangler-config.sh
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          STAGING_DB_ID: ${{ secrets.STAGING_DB_ID }}
+          STAGING_KV_ID: ${{ secrets.STAGING_KV_ID }}
           PROD_DB_ID: ${{ secrets.PROD_DB_ID }}
           PROD_KV_ID: ${{ secrets.PROD_KV_ID }}
 

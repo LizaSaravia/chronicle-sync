@@ -4,11 +4,23 @@
 required_vars=(
     "CLOUDFLARE_ACCOUNT_ID"
     "CLOUDFLARE_API_TOKEN"
-    "PROD_DB_ID"
-    "PROD_KV_ID"
-    "STAGING_DB_ID"
-    "STAGING_KV_ID"
 )
+
+# Add environment-specific variables
+if [ -n "$PROD_DB_ID" ]; then
+    required_vars+=(
+        "PROD_DB_ID"
+        "PROD_KV_ID"
+    )
+elif [ -n "$STAGING_DB_ID" ]; then
+    required_vars+=(
+        "STAGING_DB_ID"
+        "STAGING_KV_ID"
+    )
+else
+    echo "Error: Neither PROD_DB_ID nor STAGING_DB_ID is set"
+    exit 1
+fi
 
 for var in "${required_vars[@]}"; do
     if [ -z "${!var}" ]; then
