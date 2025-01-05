@@ -87,14 +87,6 @@ export class HistoryManager {
     }
   }
 
-  async getLocalHistory(startTime = null, maxResults = 1000, url = '') {
-    const query = {
-      text: url,
-      maxResults,
-      startTime: startTime || (Date.now() - 90 * 24 * 60 * 60 * 1000) // Last 90 days by default
-    };
-    return await chrome.history.search(query);
-  }
 
   async attemptSync() {
     if (!navigator.onLine) {
