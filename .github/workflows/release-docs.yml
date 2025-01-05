@@ -55,6 +55,10 @@ jobs:
         mkdir -p docs/releases/${{ github.ref_name }}/screenshots
         cp -r tests/screenshots/* docs/releases/${{ github.ref_name }}/screenshots/ || true
         
+        # Create latest symlink for direct README access
+        rm -rf docs/releases/latest
+        ln -s ${{ github.ref_name }} docs/releases/latest
+        
         # Update latest release gallery
         echo "# Latest Release Test Results" > docs/latest-release.md
         echo "" >> docs/latest-release.md
