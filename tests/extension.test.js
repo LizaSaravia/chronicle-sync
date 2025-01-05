@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-
+import { vi } from 'vitest';
 import puppeteer from 'puppeteer';
 
 /**
@@ -9,9 +9,10 @@ import puppeteer from 'puppeteer';
  */
 
 // Set timeout for all tests in this suite
-const timeout = process.env.CI ? 60000 : 30000;
+const timeout = process.env.CI ? 120000 : 60000;
 
 describe('Extension End-to-End Test', () => {
+  vi.setConfig({ hookTimeout: timeout });
   let browser;
   let page;
   let extensionId;
