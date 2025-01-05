@@ -2,6 +2,9 @@ name = "chronicle-sync"
 main = "dist-worker/worker.js"
 compatibility_date = "2023-12-01"
 
+# Pages configuration
+pages_build_output_dir = "dist/dashboard"
+
 [env.staging]
 name = "chronicle-sync-staging"
 vars = { ENVIRONMENT = "staging" }
