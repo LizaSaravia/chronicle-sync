@@ -116,8 +116,8 @@ jobs:
               for img in "$dir"/*.png; do
                 if [ -f "$img" ]; then
                   name=$(basename "$img")
-                  # Use GitHub Pages URL for screenshots
-                  pages_url="https://posix4e.github.io/chronicle-sync/screenshots/$test_name/$name"
+                  # Use custom domain URL for screenshots
+                  pages_url="https://chroniclesync.xyz/screenshots/$test_name/$name"
                   echo "#### ${name%.png}" >> docs/test-results.md
                   echo "![${name%.png}]($pages_url)" >> docs/test-results.md
                   echo "" >> docs/test-results.md
