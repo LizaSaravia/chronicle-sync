@@ -178,6 +178,136 @@ describe('Extension Setup and Usage', () => {
       .and('contain', 'Password contains invalid characters');
   });
 
+  it('should handle popup to options to login flow', () => {
+    // Start with popup
+    cy.visit(`chrome-extension://${extensionId}/popup.html`);
+
+    // Verify initial state
+    cy.get('.not-setup').should('be.visible');
+    cy.get('#setup-btn').should('be.visible');
+
+    // Click setup to go to options
+    cy.get('#setup-btn').click();
+
+    // Switch to options page context
+    cy.origin(`chrome-extension://${extensionId}`, () => {
+      // Should show login form by default
+      cy.get('#login-form').should('be.visible');
+      cy.get('#setup-form').should('not.be.visible');
+
+      // Enter correct password
+      cy.get('#password').type('ValidPassword123!');
+      cy.get('#login-btn').click();
+
+      // Verify successful login
+      cy.get('.success', { timeout: 10000 }).should('be.visible')
+        .and('contain', 'Successfully logged in');
+    });
+
+    // Go back to popup
+    cy.visit(`chrome-extension://${extensionId}/popup.html`);
+
+    // Verify logged in state
+    cy.get('.not-setup').should('not.be.visible');
+    cy.get('.history').should('be.visible');
+    cy.get('#sync-btn').should('be.visible');
+  });
+
+  it('should handle login flow correctly', () => {
+    // Visit options page directly (simulating popup -> options flow)
+    cy.visit(`chrome-extension://${extensionId}/options.html`);
+
+    // Test login form visibility
+    cy.get('#login-form').should('be.visible');
+    cy.get('#setup-form').should('not.be.visible');
+
+    // Test switching to setup form
+    cy.get('#create-group-btn').click();
+    cy.get('#login-form').should('not.be.visible');
+    cy.get('#setup-form').should('be.visible');
+
+    // Go back to login
+    cy.get('#back-to-login-btn').click();
+    cy.get('#login-form').should('be.visible');
+    cy.get('#setup-form').should('not.be.visible');
+
+    // Test incorrect password
+    cy.get('#password').type('WrongPassword123!');
+    cy.get('#login-btn').click();
+    cy.get('.error').should('be.visible')
+      .and('contain', 'Invalid password or sync group');
+
+    // Test correct password
+    cy.get('#password').clear().type('ValidPassword123!');
+    cy.get('#login-btn').click();
+
+    // Verify successful login
+    cy.get('.success', { timeout: 10000 }).should('be.visible')
+      .and('contain', 'Successfully logged in');
+
+    // Verify sync starts after login
+    cy.get('#sync-status').should('be.visible')
+      .and('contain', 'Syncing...');
+
+    // Go to popup and verify state
+    cy.visit(`chrome-extension://${extensionId}/popup.html`);
+    cy.get('.not-setup').should('not.be.visible');
+    cy.get('.history').should('be.visible');
+  });
+
+  it('should properly initialize background script during login', () => {
+    // Set up a spy for background script messages
+    cy.window().then((win) => {
+      cy.spy(win.chrome.runtime, 'sendMessage').as('bgMessage');
+    });
+
+    // Visit options page
+    cy.visit(`chrome-extension://${extensionId}/options.html`);
+
+    // Enter correct password
+    cy.get('#password').type('ValidPassword123!');
+    cy.get('#login-btn').click();
+
+    // Verify initialization message was sent
+    cy.get('@bgMessage').should('have.been.calledWith', {
+      type: 'INITIALIZE',
+      password: 'ValidPassword123!'
+    });
+
+    // Wait for success message
+    cy.get('.success', { timeout: 10000 }).should('be.visible');
+
+    // Verify storage was updated
+    cy.window().then((win) => {
+      win.chrome.storage.local.get('initialized', (result) => {
+        expect(result.initialized).to.be.true;
+      });
+    });
+
+    // Go to popup and verify sync is working
+    cy.visit(`chrome-extension://${extensionId}/popup.html`);
+    cy.get('.history').should('be.visible');
+
+    // Add a history entry
+    cy.window().then((win) => {
+      win.chrome.history.addUrl({ url: 'https://example.com/test' });
+    });
+
+    // Force sync
+    cy.get('#sync-btn').click();
+
+    // Verify sync worked
+    cy.get('.history-item').should('contain', 'example.com/test');
+
+    // Verify data was encrypted
+    cy.window().then(async (win) => {
+      const response = await fetch(`${Cypress.env('apiUrl')}/sync/group/default`);
+      const { data: encryptedData } = await response.json();
+      expect(encryptedData).to.be.a('string');
+      expect(encryptedData).to.not.include('example.com');
+    });
+  });
+
   it('should handle real WebSocket updates', () => {
     // Set up extension first
     cy.visit(`chrome-extension://${extensionId}/options.html`);
