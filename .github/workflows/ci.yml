@@ -162,15 +162,11 @@ jobs:
       - name: Deploy Dashboard to Cloudflare Pages (Staging)
         if: success() && github.ref == 'refs/heads/main'
         run: |
-          # Create Pages project if it doesn't exist
-          wrangler pages project create chronicle-sync-dashboard --production-branch main || true
-          
           # Deploy dashboard
           wrangler pages deploy dist/dashboard \
             --project-name chronicle-sync-dashboard \
             --branch staging \
-            --commit-dirty=true \
-            --compatibility-date 2024-01-05
+            --commit-dirty=true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -205,8 +201,7 @@ jobs:
           wrangler pages deploy dist/dashboard \
             --project-name chronicle-sync-dashboard \
             --branch main \
-            --commit-dirty=true \
-            --compatibility-date 2024-01-05
+            --commit-dirty=true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
