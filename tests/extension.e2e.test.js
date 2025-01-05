@@ -1,7 +1,8 @@
+import { execSync } from 'child_process';
 import fs from 'fs/promises';
 import path from 'path';
 
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
 import { vi } from 'vitest';
 
 /**
@@ -59,9 +60,18 @@ describe('Extension End-to-End Test', () => {
     console.log('Extension directory contents:', await fs.readdir(distPath));
 
     // Launch browser with extension
+    const userDataDir = path.join(__dirname, 'chrome-data');
+    try {
+      await fs.rm(userDataDir, { recursive: true, force: true });
+    } catch (e) {
+      console.log('Error removing user data dir:', e.message);
+    }
+    await fs.mkdir(userDataDir, { recursive: true });
+
+    // Launch Chrome with extensions enabled
     browser = await puppeteer.launch({
-      headless: false, // Use non-headless mode for extension testing
-      product: 'chrome',
+      headless: false, // Extensions don't work in headless mode
+      userDataDir,
       args: [
         `--disable-extensions-except=${path.join(__dirname, '../dist')}`,
         `--load-extension=${path.join(__dirname, '../dist')}`,
@@ -71,16 +81,29 @@ describe('Extension End-to-End Test', () => {
         '--disable-gpu',
         '--disable-software-rasterizer'
       ],
-      ignoreDefaultArgs: ['--disable-extensions'],
       executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome'
     });
 
+    // Wait for extension to be loaded
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
     // Get extension ID
     const targets = await browser.targets();
+    console.log('Browser targets:', targets.map(t => {
+      try {
+        return { type: t.type(), url: t.url() };
+      } catch (e) {
+        return { type: t.type(), error: e.message };
+      }
+    }));
+    
     const extensionTarget = targets.find(target => {
       try {
-        return target.url().includes('chrome-extension://');
+        const url = target.url();
+        console.log('Checking target:', { type: target.type(), url });
+        return url.includes('chrome-extension://');
       } catch (e) {
+        console.log('Error checking target:', e.message);
         return false;
       }
     });
@@ -101,21 +124,23 @@ describe('Extension End-to-End Test', () => {
     if (browser) {
       await browser.close();
     }
+    const userDataDir = path.join(__dirname, 'chrome-data');
+    try {
+      // Kill any remaining Chrome processes
+      await execSync('pkill -f chrome');
+    } catch (e) {
+      console.log('Error killing Chrome processes:', e.message);
+    }
+    try {
+      await fs.rm(userDataDir, { recursive: true, force: true });
+    } catch (e) {
+      console.log('Error removing user data dir:', e.message);
+    }
   });
 
   beforeEach(async () => {
-    // Clear storage and databases
-    const context = browser.defaultBrowserContext();
-    await context.clearPermissionOverrides();
-    
     // Navigate to extension page first to ensure we have the right permissions
     await page.goto(`chrome-extension://${extensionId}/popup.html`);
-    
-    // Grant necessary permissions
-    await context.overridePermissions(`chrome-extension://${extensionId}`, [
-      'clipboard-read',
-      'clipboard-write'
-    ]);
     
     try {
       await page.evaluate(() => {
@@ -166,15 +191,17 @@ describe('Extension End-to-End Test', () => {
       throw e;
     }
     
-    // Click setup button
+    // Click setup button and wait for options page
     console.log('Clicking setup button...');
-    await page.click('#setup-btn');
+    const [optionsPage] = await Promise.all([
+      browser.waitForTarget(target => target.url().includes('chrome-extension://') && target.url().includes('options.html')).then(target => target.page()),
+      page.click('#setup-btn')
+    ]);
     
-    // Wait for and switch to options page
-    console.log('Switching to options page...');
-    const optionsPage = (await browser.pages()).find(p => p !== page);
-    optionsPage.on('console', msg => console.log('Browser log:', msg.text()));
+    // Set up options page
     console.log('Options page URL:', await optionsPage.url());
+    optionsPage.on('console', msg => console.log('Browser log:', msg.text()));
+    await optionsPage.waitForFunction(() => document.readyState === 'complete');
     
     try {
       await optionsPage.waitForSelector('#password', { timeout: process.env.CI ? 15000 : 5000 });
