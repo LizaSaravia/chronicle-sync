@@ -20,7 +20,7 @@ module.exports = {
       transform: {
         '^.+\\.js$': 'babel-jest',
       },
-      testTimeout: 30000, // 30 seconds timeout for E2E tests
+
     }] : []),
   ],
 };

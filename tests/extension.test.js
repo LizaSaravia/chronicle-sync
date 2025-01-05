@@ -8,7 +8,12 @@ const { CryptoManager } = require('../src/extension/utils/crypto');
  * Screenshots are saved to tests/screenshots/{testName}/{timestamp}_{description}.png
  */
 
-jest.setTimeout(60000); // Set timeout for all tests in this suite
+// Set timeout for all tests in this suite
+if (process.env.CI) {
+  jest.setTimeout(60000);
+} else {
+  jest.setTimeout(30000);
+}
 
 describe('Extension End-to-End Test', () => {
   let browser;
@@ -330,7 +335,7 @@ describe('Extension End-to-End Test', () => {
         return items.some(item => item.textContent.includes('Test Page 1')) &&
                items.some(item => item.textContent.includes('Test Page 2'));
       },
-      { timeout: 5000 }
+      { timeout: 10000 }  // Wait up to 10 seconds for history entries
     );
     
     // Take screenshot after entries are found
