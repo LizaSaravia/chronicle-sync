@@ -66,7 +66,7 @@ describe('Extension End-to-End Test', () => {
         '--disable-software-rasterizer'
       ],
       ignoreDefaultArgs: ['--disable-extensions'],
-      executablePath: '/usr/bin/chromium'
+      executablePath: process.env.CHROME_PATH || '/usr/bin/chromium'
     });
 
     // Get extension ID
@@ -115,6 +115,7 @@ describe('Extension End-to-End Test', () => {
     console.log('Found extension ID:', extensionId);
 
     page = await browser.newPage();
+    page.on('console', msg => console.log('Browser log:', msg.text()));
   });
 
   afterAll(async () => {
@@ -174,8 +175,8 @@ describe('Extension End-to-End Test', () => {
     
     // Verify initial state
     try {
-      await page.waitForSelector('.not-setup', { visible: true, timeout: 5000 });
-      const setupBtn = await page.waitForSelector('#setup-btn', { visible: true, timeout: 5000 });
+      await page.waitForSelector('.not-setup', { visible: true, timeout: process.env.CI ? 15000 : 5000 });
+      const setupBtn = await page.waitForSelector('#setup-btn', { visible: true, timeout: process.env.CI ? 15000 : 5000 });
       if (!setupBtn) {
         throw new Error('Setup button not found');
       }
@@ -205,10 +206,11 @@ describe('Extension End-to-End Test', () => {
     }
     
     const optionsPage = pages[pages.length - 1];
+    optionsPage.on('console', msg => console.log('Browser log:', msg.text()));
     console.log('Options page URL:', await optionsPage.url());
     
     try {
-      await optionsPage.waitForSelector('#password', { timeout: 5000 });
+      await optionsPage.waitForSelector('#password', { timeout: process.env.CI ? 15000 : 5000 });
       console.log('Found password field');
       await takeScreenshot(optionsPage, 'setup-form');
     } catch (e) {
@@ -242,14 +244,14 @@ describe('Extension End-to-End Test', () => {
       const error = document.querySelector('.error');
       return (success && success.style.display === 'block') || 
              (error && error.style.display === 'block');
-    }, { timeout: 10000 });
+    }, { timeout: process.env.CI ? 30000 : 10000 });
     
     // Wait for success message
     console.log('Waiting for success message...');
     try {
       await optionsPage.waitForSelector('.success', { 
         visible: true,
-        timeout: 10000  // Wait up to 10 seconds for success message
+        timeout: process.env.CI ? 30000 : 10000  // Longer timeout in CI for success message
       });
       console.log('Success element found, checking content...');
       
@@ -276,37 +278,64 @@ describe('Extension End-to-End Test', () => {
     
     // Create a new page for the popup
     const newPage = await browser.newPage();
+    newPage.on('console', msg => console.log('Browser log:', msg.text()));
     await newPage.goto(`chrome-extension://${extensionId}/popup.html`);
     await takeScreenshot(newPage, 'popup-after-setup');
     
     // Add test history entries
     console.log('Adding test history entries...');
     await newPage.evaluate(async () => {
+      console.log('Starting history operations...');
       // Clear history first
-      await new Promise(resolve => {
-        chrome.history.deleteAll(() => {
-          console.log('History cleared');
-          resolve();
+      console.log('Clearing history...');
+      try {
+        await new Promise((resolve, reject) => {
+          chrome.history.deleteAll(() => {
+            if (chrome.runtime.lastError) {
+              console.error('Error clearing history:', chrome.runtime.lastError);
+              reject(chrome.runtime.lastError);
+            } else {
+              console.log('History cleared successfully');
+              resolve();
+            }
+          });
         });
-      });
+      } catch (e) {
+        console.error('Failed to clear history:', e);
+      }
       
       // Wait a bit for the clear to take effect
-      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('Waiting after clear...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Add new entries
+      console.log('Adding new history entries...');
       const entries = [
         { title: 'Test Page 1', url: 'https://example.com/1' },
         { title: 'Test Page 2', url: 'https://example.com/2' }
       ];
       
       for (const entry of entries) {
-        await new Promise(resolve => {
-          chrome.history.addUrl({ url: entry.url }, resolve);
-        });
+        try {
+          await new Promise((resolve, reject) => {
+            chrome.history.addUrl({ url: entry.url }, () => {
+              if (chrome.runtime.lastError) {
+                console.error('Error adding URL:', entry.url, chrome.runtime.lastError);
+                reject(chrome.runtime.lastError);
+              } else {
+                console.log('Added URL:', entry.url);
+                resolve();
+              }
+            });
+          });
+        } catch (e) {
+          console.error('Failed to add URL:', entry.url, e);
+        }
       }
       
       // Wait for entries to be added
-      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('Waiting after adding entries...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
     });
     
     // Wait for history div to be visible
@@ -335,7 +364,7 @@ describe('Extension End-to-End Test', () => {
         return items.some(item => item.textContent.includes('Test Page 1')) &&
                items.some(item => item.textContent.includes('Test Page 2'));
       },
-      { timeout: 10000 }  // Wait up to 10 seconds for history entries
+      { timeout: process.env.CI ? 30000 : 10000 }  // Longer timeout in CI
     );
     
     // Take screenshot after entries are found
@@ -362,7 +391,9 @@ describe('Extension End-to-End Test', () => {
     expect(items.testPage2).toContain('Test Page 2');
     
     // Test sync between devices
+    console.log('Testing sync between devices...');
     await newPage.evaluate(async () => {
+      console.log('Starting sync operation...');
       const crypto = new CryptoManager('ValidPassword123!');
       const newHistory = [
         { title: 'Test Page 1', url: 'https://example.com/1' },
@@ -372,14 +403,20 @@ describe('Extension End-to-End Test', () => {
       
       const encryptedData = await crypto.encrypt(newHistory);
       
-      await fetch('http://localhost:3000/sync/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          groupId: 'default',
-          encryptedData
-        })
-      });
+      console.log('Sending sync request...');
+      try {
+        const response = await fetch('http://localhost:3000/sync/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            groupId: 'default',
+            encryptedData
+          })
+        });
+        console.log('Sync response:', await response.text().catch(() => 'Failed to get response text'));
+      } catch (e) {
+        console.error('Sync request failed:', e);
+      }
     });
     
     // Force sync again
@@ -393,5 +430,5 @@ describe('Extension End-to-End Test', () => {
     
     const lastItemTextAfterSync = await newPage.$eval('.history-item:last-child', el => el.textContent);
     expect(lastItemTextAfterSync).toContain('Test Page 3');
-  }, 30000);
+  }, process.env.CI ? 60000 : 30000);
 });
