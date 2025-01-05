@@ -20,9 +20,6 @@ describe('Extension End-to-End Test', () => {
    * @param {string} description - Description of the screenshot
    */
   async function takeScreenshot(targetPage, description) {
-    // Only take screenshots in CI if explicitly requested for docs
-    if (process.env.CI && !process.env.SCREENSHOTS_FOR_DOCS) return;
-
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const fileName = `${timestamp}_${description}.png`;
     const filePath = path.join(screenshotDir, fileName);
@@ -35,12 +32,6 @@ describe('Extension End-to-End Test', () => {
   }
 
   beforeAll(async () => {
-    // Skip in CI environment for now
-    if (process.env.CI) {
-      console.log('Skipping E2E tests in CI environment');
-      return;
-    }
-
     // Create screenshots directory
     screenshotDir = path.join(__dirname, 'screenshots', 'setup-flow');
     await fs.mkdir(screenshotDir, { recursive: true });
@@ -79,16 +70,12 @@ describe('Extension End-to-End Test', () => {
   });
 
   afterAll(async () => {
-    if (process.env.CI) return;
-
     if (browser) {
       await browser.close();
     }
   });
 
   beforeEach(async () => {
-    if (process.env.CI) return;
-
     // Clear storage and databases
     const context = browser.defaultBrowserContext();
     await context.clearPermissionOverrides();
@@ -100,12 +87,6 @@ describe('Extension End-to-End Test', () => {
   });
 
   test('complete setup and sync flow', async () => {
-    // Skip in CI environment for now
-    if (process.env.CI) {
-      console.log('Skipping E2E test in CI environment');
-      return;
-    }
-
     // Visit popup page
     await page.goto(`chrome-extension://${extensionId}/popup.html`);
     await takeScreenshot(page, 'initial-popup');
