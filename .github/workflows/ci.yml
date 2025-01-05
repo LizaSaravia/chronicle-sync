@@ -68,13 +68,14 @@ jobs:
       - name: Run E2E tests and generate screenshots
         if: success()
         run: |
-          mkdir -p tests/screenshots/setup-flow
+          mkdir -p docs/screenshots/setup-flow
           xvfb-run --auto-servernum npm run test:e2e
         env:
           CI: true
           DISPLAY: :99
           CHROME_PATH: /usr/bin/google-chrome
           SCREENSHOTS_FOR_DOCS: true
+          SCREENSHOT_DIR: docs/screenshots
 
       - name: Upload test artifacts
         if: always()  # Changed from failure() to always() to preserve screenshots
@@ -82,7 +83,7 @@ jobs:
         with:
           name: test-artifacts
           path: |
-            tests/screenshots/**/*.png
+            docs/screenshots/**/*.png
             tests/logs/
           retention-days: 14
           if-no-files-found: ignore

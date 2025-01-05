@@ -43,7 +43,9 @@ describe('Extension End-to-End Test', () => {
   beforeAll(async () => {
     // Create screenshots directory only if needed
     if (process.env.SCREENSHOTS_FOR_DOCS) {
-      screenshotDir = path.join(__dirname, 'screenshots', 'setup-flow');
+      screenshotDir = process.env.SCREENSHOT_DIR
+        ? path.join(process.env.SCREENSHOT_DIR, 'setup-flow')
+        : path.join(__dirname, 'screenshots', 'setup-flow');
       await fs.mkdir(screenshotDir, { recursive: true });
     }
 
