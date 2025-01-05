@@ -1,51 +1,70 @@
-import { enc, AES, PBKDF2, lib } from 'crypto-js';
-
-// Use Web Crypto API for generating random values
-function getRandomValues(count) {
-  // crypto is available globally in both window and service worker contexts
-  return crypto.getRandomValues(new Uint8Array(count));
-}
-
-// Override the crypto-js WordArray random generator
-lib.WordArray.random = function (numberOfBytes) {
-  const randomBytes = getRandomValues(numberOfBytes);
-  const words = [];
-  for (let i = 0; i < numberOfBytes; i += 4) {
-    words.push(
-      (randomBytes[i] << 24) |
-      (randomBytes[i + 1] << 16) |
-      (randomBytes[i + 2] << 8) |
-      randomBytes[i + 3]
-    );
-  }
-  return new lib.WordArray.init(words, numberOfBytes);
-};
-
 export class CryptoManager {
   constructor(password) {
     if (!password || typeof password !== 'string') {
       throw new Error('Password must be a non-empty string');
     }
+    this.password = password;
+  }
 
-    try {
-      this.key = PBKDF2(password, 'chronicle-sync', {
-        keySize: 256 / 32,
-        iterations: 10000
-      });
-    } catch (error) {
-      console.error('Failed to initialize crypto:', error);
-      throw new Error('Failed to initialize encryption');
-    }
+  // Simple key derivation
+  async deriveKey(password) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    return new Uint8Array(hash);
+  }
+
+  // Convert between string and bytes
+  stringToBytes(str) {
+    return new TextEncoder().encode(str);
+  }
+
+  bytesToString(bytes) {
+    return new TextDecoder().decode(bytes);
+  }
+
+  // Convert between base64 and bytes
+  base64ToBytes(base64) {
+    const binString = atob(base64);
+    return Uint8Array.from(binString, (m) => m.codePointAt(0));
+  }
+
+  bytesToBase64(bytes) {
+    const binString = String.fromCodePoint(...bytes);
+    return btoa(binString);
   }
 
   async encrypt(data) {
-    if (!data) {
-      throw new Error('Data to encrypt cannot be empty');
-    }
-
     try {
-      const encrypted = AES.encrypt(JSON.stringify(data), this.key.toString());
-      return encrypted.toString();
+      // Get encryption key
+      const keyBytes = await this.deriveKey(this.password);
+      
+      // Generate random IV
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      
+      // Create key object for encryption
+      const key = await crypto.subtle.importKey(
+        'raw',
+        keyBytes,
+        { name: 'AES-GCM' },
+        false,
+        ['encrypt']
+      );
+
+      // Encrypt
+      const dataBytes = this.stringToBytes(JSON.stringify(data));
+      const encrypted = await crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv },
+        key,
+        dataBytes
+      );
+
+      // Combine IV and encrypted data
+      const result = new Uint8Array(iv.length + encrypted.byteLength);
+      result.set(iv);
+      result.set(new Uint8Array(encrypted), iv.length);
+
+      return this.bytesToBase64(result);
     } catch (error) {
       console.error('Encryption failed:', error);
       throw new Error('Failed to encrypt data');
@@ -53,17 +72,34 @@ export class CryptoManager {
   }
 
   async decrypt(encryptedData) {
-    if (!encryptedData) {
-      throw new Error('Data to decrypt cannot be empty');
-    }
-
     try {
-      const decrypted = AES.decrypt(encryptedData, this.key.toString());
-      const decryptedStr = decrypted.toString(enc.Utf8);
-      if (!decryptedStr) {
-        throw new Error('Decryption produced empty result');
-      }
-      return JSON.parse(decryptedStr);
+      // Get encryption key
+      const keyBytes = await this.deriveKey(this.password);
+      
+      // Decode base64
+      const encrypted = this.base64ToBytes(encryptedData);
+      
+      // Extract IV and data
+      const iv = encrypted.slice(0, 12);
+      const data = encrypted.slice(12);
+
+      // Create key object for decryption
+      const key = await crypto.subtle.importKey(
+        'raw',
+        keyBytes,
+        { name: 'AES-GCM' },
+        false,
+        ['decrypt']
+      );
+
+      // Decrypt
+      const decrypted = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv },
+        key,
+        data
+      );
+
+      return JSON.parse(this.bytesToString(new Uint8Array(decrypted)));
     } catch (error) {
       console.error('Decryption failed:', error);
       throw new Error('Failed to decrypt data. The password may be incorrect.');
