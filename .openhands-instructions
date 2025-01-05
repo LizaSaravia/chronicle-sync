@@ -16,7 +16,18 @@ chronicle-sync/
 
 ## Development Workflow
 
-1. **Code Changes**
+1. **Build Configuration**
+   - Two separate webpack configurations for different purposes:
+     - `webpack.config.js`: Builds the browser extension components
+       - Handles background service worker, popup UI, and options page
+       - Includes extension assets (manifest.json, HTML files, icons)
+       - Outputs to `dist` directory
+     - `webpack.worker.js`: Builds the Cloudflare Worker backend
+       - Targets webworker environment
+       - Single entry point for backend code
+       - Outputs optimized ES module to `worker` directory
+
+2. **Code Changes**
    - Write tests for new features using Jest and Cypress
    - Follow TypeScript best practices and existing patterns
    - Run `npm test` locally before committing
