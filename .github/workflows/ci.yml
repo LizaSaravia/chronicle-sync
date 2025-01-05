@@ -162,6 +162,9 @@ jobs:
       - name: Deploy Dashboard to Cloudflare Pages (Staging)
         if: success() && github.ref == 'refs/heads/main'
         run: |
+          # Create project if it doesn't exist
+          wrangler pages project create chronicle-sync-dashboard --production-branch main || true
+          
           # Deploy dashboard
           wrangler pages deploy dist/dashboard \
             --project-name chronicle-sync-dashboard \
@@ -197,6 +200,9 @@ jobs:
       - name: Deploy Dashboard to Cloudflare Pages (Production)
         if: success() && startsWith(github.ref, 'refs/tags/v')
         run: |
+          # Create project if it doesn't exist
+          wrangler pages project create chronicle-sync-dashboard --production-branch main || true
+          
           # Deploy dashboard to production (main branch)
           wrangler pages deploy dist/dashboard \
             --project-name chronicle-sync-dashboard \
