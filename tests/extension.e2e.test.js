@@ -1,7 +1,8 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { vi } from 'vitest';
+
 import puppeteer from 'puppeteer';
+import { vi } from 'vitest';
 
 /**
  * This file contains end-to-end tests for the Chronicle Sync extension.
