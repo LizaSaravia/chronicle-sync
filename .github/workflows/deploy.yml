@@ -2,12 +2,12 @@ name: Deploy
 
 on:
   push:
-    branches: [main, staging]
+    branches: [main]
     tags: ['v*']
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -55,11 +55,55 @@ jobs:
           worker/
         retention-days: 1
 
-  deploy-cloudflare:
+  deploy-staging:
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
-    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+    if: github.ref == 'refs/heads/main'
+    environment: staging
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download build artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: build-artifact
+    
+    - name: Install Wrangler
+      run: npm install -g wrangler@latest
+    
+    - name: Generate Wrangler Config
+      run: ./scripts/generate-wrangler-config.sh
+      env:
+        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        STAGING_DB_ID: ${{ secrets.STAGING_DB_ID }}
+        STAGING_KV_ID: ${{ secrets.STAGING_KV_ID }}
+    
+    - name: Deploy to Cloudflare Staging
+      run: wrangler deploy --env staging
+      env:
+        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    
+    - name: Create Beta Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: chronicle-sync.zip
+        name: "Beta (Staging)"
+        tag_name: beta
+        prerelease: true
+        body: |
+          Beta version of Chronicle Sync extension connected to staging environment.
+          This version is automatically updated when changes are merged to main.
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy-production:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    environment: production
     
     steps:
     - uses: actions/checkout@v4
@@ -79,29 +123,14 @@ jobs:
         CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         PROD_DB_ID: ${{ secrets.PROD_DB_ID }}
         PROD_KV_ID: ${{ secrets.PROD_KV_ID }}
-        STAGING_DB_ID: ${{ secrets.STAGING_DB_ID }}
-        STAGING_KV_ID: ${{ secrets.STAGING_KV_ID }}
     
-    - name: Deploy to Cloudflare
-      run: wrangler deploy --env ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+    - name: Deploy to Cloudflare Production
+      run: wrangler deploy --env production
       env:
         CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-  create-release:
-    needs: build
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    permissions:
-      contents: write
     
-    steps:
-    - name: Download build artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: build-artifact
-    
-    - name: Create Release
+    - name: Create Production Release
       uses: softprops/action-gh-release@v1
       with:
         files: chronicle-sync.zip
