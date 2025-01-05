@@ -181,7 +181,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: build-artifacts
+          name: build-artifacts-${{ github.sha }}
           path: |
             dist/
           retention-days: 1

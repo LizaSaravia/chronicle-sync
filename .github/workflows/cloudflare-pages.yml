@@ -21,11 +21,32 @@ jobs:
 
       - name: Download build artifacts
         uses: actions/download-artifact@v4
+        id: download
+        continue-on-error: true
         with:
-          name: build-artifacts
+          name: build-artifacts-${{ github.event.workflow_run.head_sha }}
           path: dist
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Retry download if failed
+        if: steps.download.outcome == 'failure'
+        uses: actions/download-artifact@v4
+        id: retry1
+        with:
+          name: build-artifacts-${{ github.event.workflow_run.head_sha }}
+          path: dist
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Verify artifacts
+        run: |
+          if [ ! -d "dist" ] || [ -z "$(ls -A dist)" ]; then
+            echo "Error: No artifacts found in dist directory"
+            exit 1
+          fi
+          echo "Artifacts downloaded successfully:"
+          ls -la dist/
 
       - name: Install Wrangler
         run: npm install -g wrangler@latest
@@ -110,11 +131,32 @@ jobs:
 
       - name: Download build artifacts
         uses: actions/download-artifact@v4
+        id: download_prod
+        continue-on-error: true
         with:
-          name: build-artifacts
+          name: build-artifacts-${{ github.event.workflow_run.head_sha }}
           path: dist
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Retry download if failed
+        if: steps.download_prod.outcome == 'failure'
+        uses: actions/download-artifact@v4
+        id: retry_prod
+        with:
+          name: build-artifacts-${{ github.event.workflow_run.head_sha }}
+          path: dist
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Verify artifacts
+        run: |
+          if [ ! -d "dist" ] || [ -z "$(ls -A dist)" ]; then
+            echo "Error: No artifacts found in dist directory"
+            exit 1
+          fi
+          echo "Artifacts downloaded successfully:"
+          ls -la dist/
 
       - name: Install Wrangler
         run: npm install -g wrangler@latest
