@@ -1,4 +1,22 @@
+import puppeteer from 'puppeteer';
 import { beforeAll, afterAll, vi } from 'vitest';
+import '@testing-library/jest-dom';
+
+let browser;
+
+beforeAll(async () => {
+  browser = await puppeteer.launch({
+    headless: 'new',
+    args: ['--no-sandbox']
+  });
+  global.__BROWSER__ = browser;
+});
+
+afterAll(async () => {
+  if (browser) {
+    await browser.close();
+  }
+});
 
 // Mock chrome API
 global.chrome = {

@@ -1,19 +1,29 @@
 {
   "name": "chronicle-sync",
   "version": "1.1.0",
+  "packageManager": "pnpm@9.15.2",
   "description": "A secure, cross-platform browser extension for syncing browsing data",
   "main": "src/extension/background.js",
   "type": "module",
   "scripts": {
-    "test": "vitest run --exclude \"tests/extension.e2e.test.js\"",
+    "test": "vitest run tests/dashboard/App.test.jsx tests/setup.test.js",
+    "test:all": "vitest run --exclude \"tests/{extension.e2e,dashboard.e2e}.test.js\"",
     "test:watch": "vitest",
     "test:e2e": "npm run build && RUN_E2E=true vitest run tests/extension.e2e.test.js",
+    "test:e2e:dashboard": "npm run build:dashboard && RUN_E2E=true vitest run tests/e2e/dashboard.test.js",
+    "test:integration": "./scripts/run-integration-tests.sh",
+    "test:integration:staging": "./scripts/run-integration-tests.sh staging",
+    "test:integration:prod": "./scripts/run-integration-tests.sh production",
     "build": "webpack --mode production",
+    "build:dashboard": "webpack --config webpack.dashboard.js --mode production",
     "dev": "webpack --mode development --watch",
+    "dev:dashboard": "webpack --config webpack.dashboard.js --mode development --watch",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
     "deploy:staging": "wrangler publish --env staging",
     "deploy:prod": "wrangler publish --env production",
+    "deploy:dashboard:staging": "wrangler pages publish dist/dashboard --project-name chronicle-sync-dashboard --branch staging",
+    "deploy:dashboard:prod": "wrangler pages publish dist/dashboard --project-name chronicle-sync-dashboard --branch main",
     "dev:worker": "wrangler dev --local"
   },
   "keywords": [
@@ -26,6 +36,10 @@
   "devDependencies": {
     "@babel/core": "^7.23.0",
     "@babel/preset-env": "^7.23.0",
+    "@babel/preset-react": "^7.23.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^14.1.2",
+    "@testing-library/user-event": "^14.5.1",
     "@types/puppeteer": "^5.4.7",
     "@typescript-eslint/eslint-plugin": "^6.15.0",
     "@typescript-eslint/parser": "^6.15.0",
@@ -36,16 +50,25 @@
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-react": "^7.33.2",
+    "html-webpack-plugin": "^5.6.0",
     "jsdom": "^25.0.1",
     "prettier": "^3.1.1",
     "puppeteer": "^23.11.1",
     "puppeteer-core": "^23.11.1",
+    "turbo": "^2.3.3",
     "vitest": "^1.1.0",
     "webpack": "^5.89.0",
     "webpack-cli": "^5.1.4",
     "wrangler": "^3.0.0"
   },
   "dependencies": {
-    "idb": "^7.1.1"
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/icons-material": "^5.15.11",
+    "@mui/material": "^5.15.11",
+    "idb": "^7.1.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   }
 }

@@ -72,7 +72,7 @@ describe('Extension End-to-End Test', () => {
 
     // Launch Chrome with extensions enabled
     browser = await puppeteer.launch({
-      headless: false, // Extensions don't work in headless mode
+      headless: 'new', // Use new headless mode
       userDataDir,
       args: [
         `--disable-extensions-except=${path.join(__dirname, '../dist')}`,
@@ -81,7 +81,9 @@ describe('Extension End-to-End Test', () => {
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-gpu',
-        '--disable-software-rasterizer'
+        '--disable-software-rasterizer',
+        '--headless=new',
+        '--window-size=1280,720'
       ],
       executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome'
     });
