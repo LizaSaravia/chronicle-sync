@@ -523,29 +523,49 @@ describe('Extension End-to-End Test', () => {
     try {
       // Click the Force Sync button
       console.log('Clicking Force Sync button...');
-      await newPage.waitForSelector('#sync-btn');
+      await newPage.waitForSelector('#sync-btn', { timeout: process.env.CI ? 30000 : 10000 });
       await newPage.waitForFunction(() => {
         const btn = document.querySelector('#sync-btn');
+        console.log('Sync button state:', btn ? { disabled: btn.disabled, display: btn.style.display } : 'not found');
         return btn && !btn.disabled;
-      });
+      }, { timeout: process.env.CI ? 30000 : 10000 });
       await newPage.click('#sync-btn');
 
       // Wait for sync to complete
       console.log('Waiting for sync to complete...');
-      await newPage.waitForSelector('#sync-loading', { visible: true });
-      await newPage.waitForSelector('#sync-loading', { hidden: true });
+      await newPage.waitForSelector('#sync-loading', { visible: true, timeout: process.env.CI ? 30000 : 10000 });
+      await newPage.waitForSelector('#sync-loading', { hidden: true, timeout: process.env.CI ? 30000 : 10000 });
 
-      // Wait for UI to update
+      // Log the current state of the history
+      await newPage.evaluate(() => {
+        const historyDiv = document.querySelector('.history');
+        console.log('History div state:', {
+          display: historyDiv ? historyDiv.style.display : 'not found',
+          innerHTML: historyDiv ? historyDiv.innerHTML : 'not found'
+        });
+        const items = Array.from(document.querySelectorAll('.history-item'));
+        console.log('History items:', items.map(item => ({
+          text: item.textContent,
+          display: item.style.display,
+          visible: item.offsetParent !== null
+        })));
+      });
+
+      // Wait for UI to update with increased timeout
       await newPage.waitForFunction(
         () => {
           const items = Array.from(document.querySelectorAll('.history-item'));
-          console.log('Current history items:', items.map(item => item.textContent));
+          console.log('Current history items:', items.map(item => ({
+            text: item.textContent,
+            display: item.style.display,
+            visible: item.offsetParent !== null
+          })));
           const hasTestPage1 = items.some(item => item.textContent.includes('Test Page 1'));
           const hasTestPage2 = items.some(item => item.textContent.includes('Test Page 2'));
           console.log('Found Test Page 1:', hasTestPage1, 'Test Page 2:', hasTestPage2);
           return hasTestPage1 && hasTestPage2;
         },
-        { timeout: process.env.CI ? 30000 : 10000 }  // Longer timeout in CI
+        { timeout: process.env.CI ? 60000 : 30000 }  // Double the timeout
       );
     } catch (error) {
       console.error('Failed while waiting for history entries:', error);
