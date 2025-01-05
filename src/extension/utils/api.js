@@ -10,16 +10,23 @@ export class ApiClient {
   }
 
   setupOfflineDetection() {
-    this.isOnline = navigator.onLine;
-    window.addEventListener('online', () => {
-      console.log('Network is online');
-      this.isOnline = true;
-      this.onOnline?.();
-    });
-    window.addEventListener('offline', () => {
-      console.log('Network is offline');
-      this.isOnline = false;
-    });
+    // Use globalThis to work in both window and service worker contexts
+    const context = typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : globalThis;
+    
+    // Default to online if we can't detect
+    this.isOnline = context.navigator?.onLine ?? true;
+    
+    if (typeof context.addEventListener === 'function') {
+      context.addEventListener('online', () => {
+        console.log('Network is online');
+        this.isOnline = true;
+        this.onOnline?.();
+      });
+      context.addEventListener('offline', () => {
+        console.log('Network is offline');
+        this.isOnline = false;
+      });
+    }
   }
 
   setOnlineCallback(callback) {
@@ -44,7 +51,7 @@ export class ApiClient {
 
       return await response.json();
     } catch (error) {
-      if (!navigator.onLine || error.message.includes('Failed to fetch')) {
+      if (!this.isOnline || error.message.includes('Failed to fetch')) {
         throw new Error('Offline: Cannot create sync group');
       }
       throw error;
@@ -75,7 +82,7 @@ export class ApiClient {
 
       return await response.json();
     } catch (error) {
-      if (!navigator.onLine || error.message.includes('Failed to fetch')) {
+      if (!this.isOnline || error.message.includes('Failed to fetch')) {
         throw new Error('Offline: Cannot sync data');
       }
       throw error;
@@ -104,7 +111,7 @@ export class ApiClient {
 
       return await response.json();
     } catch (error) {
-      if (!navigator.onLine || error.message.includes('Failed to fetch')) {
+      if (!this.isOnline || error.message.includes('Failed to fetch')) {
         throw new Error('Offline: Cannot get updates');
       }
       throw error;
