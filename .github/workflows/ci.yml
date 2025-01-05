@@ -135,6 +135,12 @@ jobs:
         if: success() && github.ref == 'refs/heads/main'
         uses: actions/configure-pages@v4
 
+      - name: Upload Pages artifact
+        if: success() && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './docs'
+
       - name: Deploy to GitHub Pages
         if: success() && github.ref == 'refs/heads/main'
         uses: actions/deploy-pages@v4
