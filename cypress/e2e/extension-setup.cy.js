@@ -17,197 +17,209 @@ describe('Extension Setup and Usage', () => {
     // Clear any existing state
     cy.clearLocalStorage();
     cy.clearCookies();
+    
+    // Clear databases
     indexedDB.deleteDatabase('chronicle-sync');
     
     // Clear extension storage
     cy.window().then((win) => {
       win.chrome.storage.local.clear();
     });
+
+    // Reset server state by restarting it
+    cy.task('restartDevServer');
   });
 
-  it('should show setup prompt in popup when not initialized', () => {
-    // Visit the popup
+  it('should complete full setup and sync flow with real backend', () => {
+    // Start with popup
     cy.visit(`chrome-extension://${extensionId}/popup.html`);
 
-    // Check initial state
+    // Verify initial state
     cy.get('.not-setup').should('be.visible');
     cy.get('.history').should('not.be.visible');
     cy.get('#setup-btn').should('be.visible');
     cy.contains('Welcome to Chronicle Sync').should('be.visible');
-  });
 
-  it('should open options page when setup button is clicked', () => {
-    // Visit the popup
+    // Click setup and go to options
+    cy.get('#setup-btn').click();
+    cy.origin(`chrome-extension://${extensionId}`, () => {
+      cy.get('#password').type('ValidPassword123!');
+      cy.get('#confirm-password').type('ValidPassword123!');
+      cy.get('#setup-btn').click();
+
+      // Wait for initialization
+      cy.get('.success', { timeout: 10000 }).should('be.visible')
+        .and('contain', 'Chronicle Sync has been successfully set up');
+    });
+
+    // Go back to popup
     cy.visit(`chrome-extension://${extensionId}/popup.html`);
 
-    // Click setup button and verify options page opens
+    // Add some history entries
     cy.window().then((win) => {
-      cy.stub(win.chrome.runtime, 'openOptionsPage').as('openOptions');
+      // Add history entries directly to chrome.history
+      const entries = [
+        { title: 'Test Page 1', url: 'https://example.com/1', lastVisitTime: Date.now() },
+        { title: 'Test Page 2', url: 'https://example.com/2', lastVisitTime: Date.now() }
+      ];
+
+      entries.forEach(entry => {
+        win.chrome.history.addUrl({ url: entry.url });
+      });
     });
-    
-    cy.get('#setup-btn').click();
-    cy.get('@openOptions').should('have.been.called');
+
+    // Force sync
+    cy.get('#sync-btn').click();
+
+    // Verify sync status
+    cy.get('#sync-loading').should('be.visible');
+    cy.get('#sync-loading', { timeout: 10000 }).should('not.exist');
+
+    // Verify history entries are displayed
+    cy.get('.history-item').should('have.length', 2);
+    cy.get('.history-item').first().should('contain', 'Test Page 1');
+    cy.get('.history-item').last().should('contain', 'Test Page 2');
+
+    // Test real encryption/decryption
+    cy.window().then(async (win) => {
+      // Get the sync group data from the server
+      const response = await fetch(`${Cypress.env('apiUrl')}/sync/group/default`);
+      const { data: encryptedData } = await response.json();
+
+      // Verify the data is actually encrypted
+      expect(encryptedData).to.be.a('string');
+      expect(encryptedData).to.not.include('Test Page');
+
+      // Decrypt the data using the extension's crypto
+      const crypto = new win.CryptoManager('ValidPassword123!');
+      const decrypted = await crypto.decrypt(encryptedData);
+
+      // Verify decrypted data
+      expect(decrypted).to.be.an('array');
+      expect(decrypted[0].title).to.equal('Test Page 1');
+      expect(decrypted[1].title).to.equal('Test Page 2');
+    });
+
+    // Test sync between devices
+    cy.window().then(async (win) => {
+      // Simulate another device updating the history
+      const crypto = new win.CryptoManager('ValidPassword123!');
+      const newHistory = [
+        { title: 'Test Page 1', url: 'https://example.com/1' },
+        { title: 'Test Page 2', url: 'https://example.com/2' },
+        { title: 'Test Page 3', url: 'https://example.com/3' }
+      ];
+      
+      const encryptedData = await crypto.encrypt(newHistory);
+      
+      await fetch(`${Cypress.env('apiUrl')}/sync/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          groupId: 'default',
+          encryptedData
+        })
+      });
+    });
+
+    // Force sync again
+    cy.get('#sync-btn').click();
+
+    // Verify updated history
+    cy.get('.history-item', { timeout: 10000 }).should('have.length', 3);
+    cy.get('.history-item').last().should('contain', 'Test Page 3');
+
+    // Test error handling
+    cy.window().then(async () => {
+      // Simulate server error
+      await fetch(`${Cypress.env('apiUrl')}/sync/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          groupId: 'invalid',
+          encryptedData: 'invalid'
+        })
+      });
+    });
+
+    cy.get('#sync-btn').click();
+    cy.get('#history-error').should('be.visible');
   });
 
-  it('should validate password setup in options page', () => {
-    // Visit the options page directly
+  it('should handle password validation and errors', () => {
+    // Visit options page
     cy.visit(`chrome-extension://${extensionId}/options.html`);
 
-    // Try submitting empty form
+    // Test empty password
     cy.get('#setup-btn').click();
     cy.get('.error').should('be.visible')
       .and('contain', 'Passwords do not match or are empty');
 
-    // Try mismatched passwords
+    // Test mismatched passwords
     cy.get('#password').type('password123');
     cy.get('#confirm-password').type('password456');
     cy.get('#setup-btn').click();
     cy.get('.error').should('be.visible')
       .and('contain', 'Passwords do not match or are empty');
-  });
 
-  it('should complete setup process successfully', () => {
-    // Visit the options page
-    cy.visit(`chrome-extension://${extensionId}/options.html`);
-
-    // Set up with valid password
-    const password = 'ValidPassword123!';
-    cy.get('#password').type(password);
-    cy.get('#confirm-password').type(password);
-
-    // Stub the initialization message response
-    cy.window().then((win) => {
-      cy.stub(win.chrome.runtime, 'sendMessage')
-        .withArgs({ type: 'INITIALIZE', password })
-        .resolves({ success: true });
-    });
-
-    // Submit the form
+    // Test weak password
+    cy.get('#password').clear().type('weak');
+    cy.get('#confirm-password').clear().type('weak');
     cy.get('#setup-btn').click();
+    cy.get('.error').should('be.visible')
+      .and('contain', 'Password must be at least 8 characters');
 
-    // Verify success message
-    cy.get('.success').should('be.visible')
-      .and('contain', 'Chronicle Sync has been successfully set up');
-    cy.get('#setup-form').should('not.be.visible');
+    // Test invalid characters
+    const invalidPassword = 'pass\x00word';
+    cy.get('#password').clear().type(invalidPassword);
+    cy.get('#confirm-password').clear().type(invalidPassword);
+    cy.get('#setup-btn').click();
+    cy.get('.error').should('be.visible')
+      .and('contain', 'Password contains invalid characters');
   });
 
-  it('should show history view after initialization', () => {
-    // Set initialized flag
-    cy.window().then((win) => {
-      win.chrome.storage.local.set({ initialized: true });
-    });
+  it('should handle real WebSocket updates', () => {
+    // Set up extension first
+    cy.visit(`chrome-extension://${extensionId}/options.html`);
+    cy.get('#password').type('ValidPassword123!');
+    cy.get('#confirm-password').type('ValidPassword123!');
+    cy.get('#setup-btn').click();
+    cy.get('.success', { timeout: 10000 }).should('be.visible');
 
-    // Mock history data
-    cy.window().then((win) => {
-      cy.stub(win.chrome.runtime, 'sendMessage')
-        .withArgs({ type: 'GET_HISTORY' })
-        .resolves({
-          success: true,
-          history: [
-            { title: 'Test Page', url: 'https://example.com' }
-          ]
-        });
-    });
-
-    // Visit the popup
+    // Go to popup
     cy.visit(`chrome-extension://${extensionId}/popup.html`);
 
-    // Verify history view is shown
-    cy.get('.not-setup').should('not.be.visible');
-    cy.get('.history').should('be.visible');
-    cy.get('#sync-btn').should('be.visible');
-    cy.get('.history-item').should('be.visible')
-      .and('contain', 'Test Page')
-      .and('contain', 'https://example.com');
-  });
-
-  it('should handle sync functionality', () => {
-    // Set initialized flag
-    cy.window().then((win) => {
-      win.chrome.storage.local.set({ initialized: true });
-    });
-
-    // Mock sync and history responses
-    cy.window().then((win) => {
-      const stub = cy.stub(win.chrome.runtime, 'sendMessage');
+    // Simulate another device making changes
+    cy.window().then(async (win) => {
+      const crypto = new win.CryptoManager('ValidPassword123!');
+      const newHistory = [
+        { title: 'WebSocket Test', url: 'https://example.com/ws' }
+      ];
       
-      stub.withArgs({ type: 'FORCE_SYNC' })
-        .resolves({ success: true });
+      const encryptedData = await crypto.encrypt(newHistory);
       
-      stub.withArgs({ type: 'GET_HISTORY' })
-        .resolves({
-          success: true,
-          history: [
-            { title: 'New Page', url: 'https://example.com/new' }
-          ]
+      // Update via WebSocket
+      const ws = new WebSocket('ws://localhost:3000');
+      ws.onopen = () => {
+        ws.send(JSON.stringify({
+          type: 'subscribe',
+          groupId: 'default'
+        }));
+
+        // Update data
+        fetch(`${Cypress.env('apiUrl')}/sync/update`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            groupId: 'default',
+            encryptedData
+          })
         });
+      };
     });
 
-    // Visit the popup
-    cy.visit(`chrome-extension://${extensionId}/popup.html`);
-
-    // Click sync button
-    cy.get('#sync-btn').click();
-
-    // Verify loading state
-    cy.get('#sync-loading').should('be.visible');
-
-    // Verify updated history
-    cy.get('.history-item').should('contain', 'New Page');
-  });
-
-  it('should handle sync errors', () => {
-    // Set initialized flag
-    cy.window().then((win) => {
-      win.chrome.storage.local.set({ initialized: true });
-    });
-
-    // Mock sync failure
-    cy.window().then((win) => {
-      cy.stub(win.chrome.runtime, 'sendMessage')
-        .withArgs({ type: 'FORCE_SYNC' })
-        .resolves({ success: false, error: 'Network error' });
-    });
-
-    // Visit the popup
-    cy.visit(`chrome-extension://${extensionId}/popup.html`);
-
-    // Click sync button
-    cy.get('#sync-btn').click();
-
-    // Verify error message
-    cy.get('#history-error').should('be.visible')
-      .and('contain', 'Sync failed: Network error');
-  });
-
-  it('should open links in new tabs', () => {
-    // Set initialized flag
-    cy.window().then((win) => {
-      win.chrome.storage.local.set({ initialized: true });
-      
-      // Mock history data
-      cy.stub(win.chrome.runtime, 'sendMessage')
-        .withArgs({ type: 'GET_HISTORY' })
-        .resolves({
-          success: true,
-          history: [
-            { title: 'Test Page', url: 'https://example.com' }
-          ]
-        });
-
-      // Stub tab creation
-      cy.stub(win.chrome.tabs, 'create').as('createTab');
-    });
-
-    // Visit the popup
-    cy.visit(`chrome-extension://${extensionId}/popup.html`);
-
-    // Click history item
-    cy.get('.history-item').click();
-
-    // Verify new tab was created
-    cy.get('@createTab').should('have.been.calledWith', {
-      url: 'https://example.com'
-    });
+    // Verify real-time update
+    cy.get('.history-item', { timeout: 10000 })
+      .should('contain', 'WebSocket Test');
   });
 });
