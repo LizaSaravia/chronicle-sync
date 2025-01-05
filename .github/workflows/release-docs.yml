@@ -3,6 +3,8 @@ name: Release Documentation
 on:
   release:
     types: [published]
+  push:
+    branches: [main]  # Also run when merging to main
   workflow_dispatch:  # Allow manual trigger for testing
 
 permissions:
@@ -50,25 +52,39 @@ jobs:
     - name: Setup Pages
       uses: actions/configure-pages@v4
     
+    - name: Set version info
+      id: version
+      run: |
+        if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          echo "title=Release ${{ github.ref_name }}" >> $GITHUB_OUTPUT
+        else
+          echo "version=main-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+          echo "title=Latest Main Branch (${GITHUB_SHA::7})" >> $GITHUB_OUTPUT
+        fi
+
     - name: Generate screenshots gallery
       run: |
-        mkdir -p docs/releases/${{ github.ref_name }}/screenshots
-        cp -r tests/screenshots/* docs/releases/${{ github.ref_name }}/screenshots/ || true
+        VERSION="${{ steps.version.outputs.version }}"
+        TITLE="${{ steps.version.outputs.title }}"
+        
+        mkdir -p docs/releases/$VERSION/screenshots
+        cp -r tests/screenshots/* docs/releases/$VERSION/screenshots/ || true
         
         # Create latest symlink for direct README access
         rm -rf docs/releases/latest
-        ln -s ${{ github.ref_name }} docs/releases/latest
+        ln -s $VERSION docs/releases/latest
         
         # Update latest release gallery
-        echo "# Latest Release Test Results" > docs/latest-release.md
+        echo "# Latest Test Results" > docs/latest-release.md
         echo "" >> docs/latest-release.md
-        echo "Version: ${{ github.ref_name }}" >> docs/latest-release.md
-        echo "Released: $(date)" >> docs/latest-release.md
+        echo "Version: $TITLE" >> docs/latest-release.md
+        echo "Updated: $(date)" >> docs/latest-release.md
         echo "" >> docs/latest-release.md
         echo "## Test Screenshots" >> docs/latest-release.md
         echo "" >> docs/latest-release.md
         
-        for dir in docs/releases/${{ github.ref_name }}/screenshots/*; do
+        for dir in docs/releases/$VERSION/screenshots/*; do
           if [ -d "$dir" ]; then
             test_name=$(basename "$dir")
             echo "### $test_name" >> docs/latest-release.md
