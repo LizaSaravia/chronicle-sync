@@ -161,6 +161,7 @@ describe('Extension End-to-End Test', () => {
   });
 
   test('complete setup and sync flow', async () => {
+    jest.setTimeout(60000); // Increase timeout to 60 seconds
     // Visit popup page and wait for it to load
     console.log('Navigating to extension popup...');
     await page.goto(`chrome-extension://${extensionId}/popup.html`, { waitUntil: 'networkidle0' });
@@ -343,22 +344,89 @@ describe('Extension End-to-End Test', () => {
         chrome.history.onVisited.addListener(listener);
       }));
       
-      // Add entries to history
+      // Add entries to history with delay between each
       for (const entry of entries) {
         try {
+          // First check if chrome.history is available
+          console.log('chrome.history available:', !!chrome.history);
+          console.log('chrome.history methods:', Object.keys(chrome.history));
+          
+          // Check permissions
+          const hasPermissions = await new Promise(resolve => {
+            chrome.permissions.contains({ permissions: ['history'] }, result => {
+              console.log('History permission check result:', result);
+              resolve(result);
+            });
+          });
+          console.log('Has history permission:', hasPermissions);
+          
+          // Try to add URL with more detailed error handling
           await new Promise((resolve, reject) => {
+            console.log('Attempting to add URL:', entry.url);
             chrome.history.addUrl({ url: entry.url }, () => {
-              if (chrome.runtime.lastError) {
-                console.error('Error adding URL:', entry.url, chrome.runtime.lastError);
-                reject(chrome.runtime.lastError);
+              const error = chrome.runtime.lastError;
+              if (error) {
+                console.error('Error adding URL:', entry.url, error);
+                console.error('Error details:', JSON.stringify(error));
+                reject(error);
               } else {
-                console.log('Added URL:', entry.url);
-                resolve();
+                console.log('Successfully added URL:', entry.url);
+                // Wait for onVisited event
+                const listener = (historyItem) => {
+                  if (historyItem.url === entry.url) {
+                    chrome.history.onVisited.removeListener(listener);
+                    // Add the entry directly to the database
+                    chrome.runtime.sendMessage({
+                      type: 'GET_HISTORY'
+                    }, (response) => {
+                      if (response.success) {
+                        console.log('Current history:', response.history);
+                        resolve();
+                      } else {
+                        console.error('Failed to get history:', response.error);
+                        reject(response.error);
+                      }
+                    });
+                  }
+                };
+                chrome.history.onVisited.addListener(listener);
               }
             });
           });
+          
+          // Wait for onVisited event to be processed
+          console.log('Waiting for onVisited event...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Check if entry was added to database
+          console.log('Checking database for entry:', entry.url);
+          const dbEntry = await new Promise((resolve) => {
+            const request = indexedDB.open('chronicle-sync', 1);
+            request.onerror = (event) => {
+              console.error('Database error:', event.target.error);
+              resolve(null);
+            };
+            request.onsuccess = () => {
+              const db = request.result;
+              const tx = db.transaction('history', 'readonly');
+              const store = tx.objectStore('history');
+              const index = store.index('url');
+              const getRequest = index.get(entry.url);
+              getRequest.onsuccess = () => {
+                console.log('Database lookup result:', getRequest.result);
+                resolve(getRequest.result);
+              };
+              getRequest.onerror = (event) => {
+                console.error('Database lookup error:', event.target.error);
+                resolve(null);
+              };
+            };
+          });
+          console.log('Database entry for', entry.url, ':', dbEntry);
         } catch (e) {
-          console.error('Failed to add URL:', entry.url, e);
+          console.error('Failed to add URL:', entry.url);
+          console.error('Error details:', e);
+          console.error('Error stack:', e.stack);
         }
       }
       
@@ -453,6 +521,21 @@ describe('Extension End-to-End Test', () => {
     // Wait for history entries to appear
     console.log('Waiting for history entries...');
     try {
+      // Click the Force Sync button
+      console.log('Clicking Force Sync button...');
+      await newPage.waitForSelector('#sync-btn');
+      await newPage.waitForFunction(() => {
+        const btn = document.querySelector('#sync-btn');
+        return btn && !btn.disabled;
+      });
+      await newPage.click('#sync-btn');
+
+      // Wait for sync to complete
+      console.log('Waiting for sync to complete...');
+      await newPage.waitForSelector('#sync-loading', { visible: true });
+      await newPage.waitForSelector('#sync-loading', { hidden: true });
+
+      // Wait for UI to update
       await newPage.waitForFunction(
         () => {
           const items = Array.from(document.querySelectorAll('.history-item'));

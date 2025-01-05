@@ -43,6 +43,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       syncLoading.style.display = 'block';
       historyError.style.display = 'none';
 
+      // Wait for the next frame to ensure the loading indicator is visible
+      await new Promise(resolve => requestAnimationFrame(resolve));
+
       const response = await chrome.runtime.sendMessage({ type: 'FORCE_SYNC' });
       if (response.success) {
         await loadHistory();
@@ -80,7 +83,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       console.log(`Found ${response.history.length} history items, displaying first 50`);
-      response.history.slice(0, 50).forEach(item => {
+      // Sort by lastVisitTime in descending order
+      const sortedHistory = response.history.sort((a, b) => (b.lastVisitTime || 0) - (a.lastVisitTime || 0));
+      // Clear existing history items
+      historyList.innerHTML = '';
+      sortedHistory.slice(0, 50).forEach(item => {
         console.log('Adding history item:', { url: item.url, title: item.title });
         const div = document.createElement('div');
         div.className = 'history-item';

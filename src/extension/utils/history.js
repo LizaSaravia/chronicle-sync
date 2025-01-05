@@ -40,9 +40,41 @@ export class HistoryManager {
 
   setupHistoryListener() {
     chrome.history.onVisited.addListener(async (historyItem) => {
-      await this.db.addHistory([historyItem]);
+      // Get the full history item with title
+      const [fullItem] = await this.getLocalHistory(historyItem.lastVisitTime, 1, historyItem.url);
+      if (fullItem) {
+        // Add title from history item if available
+        const item = {
+          ...fullItem,
+          title: fullItem.title || historyItem.title || 'Untitled',
+          lastVisitTime: historyItem.lastVisitTime || Date.now()
+        };
+        await this.db.addHistory([item]);
+      } else {
+        // Add with default title
+        const item = {
+          ...historyItem,
+          title: historyItem.title || 'Untitled',
+          lastVisitTime: historyItem.lastVisitTime || Date.now()
+        };
+        await this.db.addHistory([item]);
+      }
       this.attemptSync();
     });
+  }
+
+  async getLocalHistory(startTime = null, maxResults = 1000, url = '') {
+    const query = {
+      text: url,
+      maxResults,
+      startTime: startTime || (Date.now() - 90 * 24 * 60 * 60 * 1000) // Last 90 days by default
+    };
+    const items = await chrome.history.search(query);
+    // Add titles if they're missing
+    return items.map(item => ({
+      ...item,
+      title: item.title || url.split('/').pop() || 'Untitled'
+    }));
   }
 
   async loadInitialHistory() {
@@ -55,9 +87,9 @@ export class HistoryManager {
     }
   }
 
-  async getLocalHistory(startTime = null, maxResults = 1000) {
+  async getLocalHistory(startTime = null, maxResults = 1000, url = '') {
     const query = {
-      text: '',
+      text: url,
       maxResults,
       startTime: startTime || (Date.now() - 90 * 24 * 60 * 60 * 1000) // Last 90 days by default
     };
