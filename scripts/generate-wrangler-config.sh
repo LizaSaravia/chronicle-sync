@@ -25,7 +25,7 @@ generate_config() {
     if [ ! -f "$template" ]; then
         echo "Error: Template file $template not found"
         exit 1
-    }
+    fi
     
     echo "Generating $output from $template..."
     envsubst < "$template" > "$output"
