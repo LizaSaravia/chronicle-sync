@@ -3,8 +3,7 @@ main = "dist-worker/worker.js"
 compatibility_date = "2023-12-01"
 
 # Pages configuration
-[pages]
-build_output_directory = "dist/dashboard"
+pages_build_output_dir = "dist/dashboard"
 
 [env.staging]
 name = "chronicle-sync-staging"
