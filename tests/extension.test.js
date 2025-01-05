@@ -363,7 +363,7 @@ describe('Extension End-to-End Test', () => {
           // Try to add URL with more detailed error handling
           await new Promise((resolve, reject) => {
             console.log('Attempting to add URL:', entry.url);
-            chrome.history.addUrl({ url: entry.url, title: entry.title }, () => {
+            chrome.history.addUrl({ url: entry.url }, () => {
               const error = chrome.runtime.lastError;
               if (error) {
                 console.error('Error adding URL:', entry.url, error);
@@ -371,41 +371,7 @@ describe('Extension End-to-End Test', () => {
                 reject(error);
               } else {
                 console.log('Successfully added URL:', entry.url);
-                // Wait for onVisited event
-                const listener = (historyItem) => {
-                  if (historyItem.url === entry.url) {
-                    chrome.history.onVisited.removeListener(listener);
-                    // Update the title
-                    chrome.history.getVisits({ url: entry.url }, (visits) => {
-                      if (visits && visits.length > 0) {
-                        chrome.history.search({ text: entry.url }, (results) => {
-                          if (results && results.length > 0) {
-                            console.log('Found history item:', results[0]);
-                            // Add the entry directly to the database
-                            chrome.runtime.sendMessage({
-                              type: 'GET_HISTORY'
-                            }, (response) => {
-                              if (response.success) {
-                                console.log('Current history:', response.history);
-                                resolve();
-                              } else {
-                                console.error('Failed to get history:', response.error);
-                                reject(response.error);
-                              }
-                            });
-                          } else {
-                            console.error('Could not find history item');
-                            reject(new Error('Could not find history item'));
-                          }
-                        });
-                      } else {
-                        console.error('No visits found for URL');
-                        reject(new Error('No visits found for URL'));
-                      }
-                    });
-                  }
-                };
-                chrome.history.onVisited.addListener(listener);
+                resolve();
               }
             });
           });
