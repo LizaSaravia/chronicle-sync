@@ -39,6 +39,14 @@ jobs:
           node-version: '20.x'
           cache: 'pnpm'
 
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+
+      - name: Install Puppeteer browsers
+        run: npx puppeteer browsers install chrome
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -57,14 +65,19 @@ jobs:
         run: pnpm vitest run tests/dashboard/App.test.jsx tests/setup.test.js
         env:
           CI: true
+          CHROME_PATH: /usr/bin/google-chrome
 
-      - name: Upload test coverage
+      - name: Upload test artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
-          path: coverage/
+          name: test-artifacts
+          path: |
+            coverage/
+            docs/screenshots/e2e-debug/**/*.png
+            tests/logs/
           retention-days: 14
+          if-no-files-found: ignore
 
       - name: Build all packages
         if: success()
@@ -75,12 +88,6 @@ jobs:
           pnpm turbo build
         env:
           NODE_ENV: production
-
-      - name: Install Chrome
-        if: success()
-        uses: browser-actions/setup-chrome@v1
-        with:
-          chrome-version: stable
 
       - name: Run E2E tests
         id: e2e_tests
@@ -95,17 +102,6 @@ jobs:
           CHROME_PATH: /usr/bin/google-chrome
           SCREENSHOTS_FOR_DOCS: ${{ github.event_name == 'pull_request' }}
           SCREENSHOT_DIR: docs/screenshots/e2e-debug
-
-      - name: Upload E2E debug artifacts
-        if: steps.e2e_tests.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: e2e-debug-artifacts
-          path: |
-            docs/screenshots/e2e-debug/**/*.png
-            tests/logs/
-          retention-days: 7
-          if-no-files-found: ignore
 
       # Fail the workflow if E2E tests failed
       - name: Check E2E test results
@@ -150,29 +146,44 @@ jobs:
           STAGING_DB_ID: ${{ secrets.STAGING_DB_ID }}
           STAGING_KV_ID: ${{ secrets.STAGING_KV_ID }}
 
-      - name: Deploy Worker to Cloudflare Staging
+      - name: Deploy to Cloudflare Pages (Staging)
         if: success() && github.ref == 'refs/heads/main'
         run: |
-          # Deploy worker
-          wrangler deploy --env staging
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Deploy both worker and pages
+          wrangler pages deploy dist --project-name chronicle-sync --branch staging --commit-dirty=true
 
-      - name: Deploy Dashboard to Cloudflare Pages (Staging)
-        if: success() && github.ref == 'refs/heads/main'
-        run: |
-          # Create project if it doesn't exist
-          wrangler pages project create chronicle-sync-dashboard --production-branch main || true
-          
-          # Deploy dashboard
-          wrangler pages deploy dist/dashboard \
-            --project-name chronicle-sync-dashboard \
-            --branch staging \
-            --commit-dirty=true
+          # Create project if it doesn't exist (this is idempotent)
+          wrangler pages project create chronicle-sync --production-branch main || true
+
+          # Add custom domains if DOMAIN is set
+          if [ ! -z "$DOMAIN" ]; then
+            # Add staging subdomain
+            wrangler pages domain add chronicle-sync "staging.$DOMAIN" || true
+            
+            # Configure DNS for staging
+            ZONE_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$DOMAIN" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -H "Content-Type: application/json" | jq -r '.result[0].id')
+            
+            if [ ! -z "$ZONE_ID" ]; then
+              # Create/update CNAME record for staging
+              curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
+                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+                -H "Content-Type: application/json" \
+                --data "{
+                  \"type\": \"CNAME\",
+                  \"name\": \"staging\",
+                  \"content\": \"staging.chronicle-sync.pages.dev\",
+                  \"proxied\": true
+                }"
+            fi
+          fi
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          DOMAIN: ${{ secrets.CLOUDFLARE_DOMAIN }}
+
+
 
       - name: Create Beta Release
         if: success() && github.ref == 'refs/heads/main'
@@ -188,29 +199,55 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Deploy Worker to Cloudflare Production
+      - name: Deploy to Cloudflare Pages (Production)
         if: success() && startsWith(github.ref, 'refs/tags/v')
         run: |
-          # Deploy worker
-          wrangler deploy --env production
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Deploy both worker and pages
+          wrangler pages deploy dist --project-name chronicle-sync --branch main --commit-dirty=true
 
-      - name: Deploy Dashboard to Cloudflare Pages (Production)
-        if: success() && startsWith(github.ref, 'refs/tags/v')
-        run: |
-          # Create project if it doesn't exist
-          wrangler pages project create chronicle-sync-dashboard --production-branch main || true
-          
-          # Deploy dashboard to production (main branch)
-          wrangler pages deploy dist/dashboard \
-            --project-name chronicle-sync-dashboard \
-            --branch main \
-            --commit-dirty=true
+          # Create project if it doesn't exist (this is idempotent)
+          wrangler pages project create chronicle-sync --production-branch main || true
+
+          # Add custom domains if DOMAIN is set
+          if [ ! -z "$DOMAIN" ]; then
+            # Add production domain
+            wrangler pages domain add chronicle-sync "$DOMAIN" || true
+            
+            # Configure DNS for production
+            ZONE_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$DOMAIN" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -H "Content-Type: application/json" | jq -r '.result[0].id')
+            
+            if [ ! -z "$ZONE_ID" ]; then
+              # Create/update CNAME record for production
+              curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
+                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+                -H "Content-Type: application/json" \
+                --data "{
+                  \"type\": \"CNAME\",
+                  \"name\": \"@\",
+                  \"content\": \"chronicle-sync.pages.dev\",
+                  \"proxied\": true
+                }"
+
+              # Also add www subdomain
+              curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
+                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+                -H "Content-Type: application/json" \
+                --data "{
+                  \"type\": \"CNAME\",
+                  \"name\": \"www\",
+                  \"content\": \"chronicle-sync.pages.dev\",
+                  \"proxied\": true
+                }"
+            fi
+          fi
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          DOMAIN: ${{ secrets.CLOUDFLARE_DOMAIN }}
+
+
 
       - name: Create Production Release
         if: success() && startsWith(github.ref, 'refs/tags/v')
@@ -231,29 +268,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9.15.2
+      
       - uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-          cache: 'npm'
+          cache: 'pnpm'
       
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
       
-      - name: Install Chrome
-        uses: browser-actions/setup-chrome@v1
-        with:
-          chrome-version: stable
-      
-      - name: Run staging integration tests and generate screenshots
+      - name: Run staging integration tests
         run: |
           # Create screenshots directory
           mkdir -p docs/screenshots/staging-flow
           
-          # Wait for staging deployment to be fully ready
+          # Wait for deployment to be fully ready
           sleep 30
           
           # Run tests with screenshot generation enabled
-          xvfb-run --auto-servernum npm run test:integration:staging
+          xvfb-run --auto-servernum pnpm run test:integration:staging
         env:
           CI: true
           DISPLAY: :99
@@ -280,29 +316,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9.15.2
+      
       - uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-          cache: 'npm'
+          cache: 'pnpm'
       
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
       
-      - name: Install Chrome
-        uses: browser-actions/setup-chrome@v1
-        with:
-          chrome-version: stable
-      
-      - name: Run production integration tests and generate screenshots
+      - name: Run production integration tests
         run: |
           # Create screenshots directory
           mkdir -p docs/screenshots/production-flow
           
-          # Wait for production deployment to be fully ready
+          # Wait for deployment to be fully ready
           sleep 30
           
           # Run tests with screenshot generation enabled
-          xvfb-run --auto-servernum npm run test:integration:prod
+          xvfb-run --auto-servernum pnpm run test:integration:production
         env:
           CI: true
           DISPLAY: :99

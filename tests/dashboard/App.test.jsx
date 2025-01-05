@@ -24,6 +24,11 @@ global.fetch = vi.fn();
 describe('App', () => {
   beforeEach(() => {
     fetch.mockReset();
+    // Default mock for fetch to return empty array
+    fetch.mockResolvedValue({
+      ok: true,
+      json: async () => []
+    });
   });
 
   it('renders the dashboard title', () => {
