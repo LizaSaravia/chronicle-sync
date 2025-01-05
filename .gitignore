@@ -8,3 +8,4 @@ cypress.env.json
 .DS_Store
 extension.zip
 tests/screenshots/
+docs/screenshots/
