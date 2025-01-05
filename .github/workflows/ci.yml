@@ -86,7 +86,7 @@ jobs:
           echo "Building dashboard..."
           pnpm turbo build
           
-          # Move built files to dashboard directory
+          # Create dashboard directory and move files
           mkdir -p dist/dashboard
           
           # Check if build produced expected files
@@ -96,9 +96,11 @@ jobs:
             exit 1
           fi
           
-          # Move files to dashboard directory
-          mv dist/*.{js,html,json} dist/dashboard/ 2>/dev/null || true
-          mv dist/icons dist/dashboard/ 2>/dev/null || true
+          # Move all dashboard files except worker directory
+          find dist -maxdepth 1 -type f -exec mv {} dist/dashboard/ \;
+          if [ -d "dist/icons" ]; then
+            mv dist/icons dist/dashboard/
+          fi
           
           # Verify dashboard files were moved
           echo "Verifying dashboard files..."
