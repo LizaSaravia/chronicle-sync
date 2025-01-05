@@ -102,6 +102,8 @@ jobs:
           echo "" >> docs/test-results.md
           echo "Last updated: $(date)" >> docs/test-results.md
           echo "" >> docs/test-results.md
+          echo "> **Note:** Screenshots are generated during test runs and are available on GitHub Pages. They are not stored in the main repository." >> docs/test-results.md
+          echo "" >> docs/test-results.md
           echo "## Test Screenshots" >> docs/test-results.md
           echo "" >> docs/test-results.md
           
@@ -114,9 +116,10 @@ jobs:
               for img in "$dir"/*.png; do
                 if [ -f "$img" ]; then
                   name=$(basename "$img")
-                  rel_path="screenshots/$test_name/$name"
+                  # Use GitHub Pages URL for screenshots
+                  pages_url="https://posix4e.github.io/chronicle-sync/screenshots/$test_name/$name"
                   echo "#### ${name%.png}" >> docs/test-results.md
-                  echo "![${name%.png}]($rel_path)" >> docs/test-results.md
+                  echo "![${name%.png}]($pages_url)" >> docs/test-results.md
                   echo "" >> docs/test-results.md
                 fi
               done
