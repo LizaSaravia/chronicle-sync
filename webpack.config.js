@@ -1,8 +1,13 @@
-const path = require('path');
-const CopyPlugin = require('copy-webpack-plugin');
-const webpack = require('webpack');
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-module.exports = {
+import CopyPlugin from 'copy-webpack-plugin';
+import webpack from 'webpack';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+export default {
   entry: {
     background: './src/extension/background.js',
     popup: './src/extension/popup.js',
@@ -17,7 +22,7 @@ module.exports = {
     fallback: {
       "crypto": false,
       "stream": false,
-      "buffer": require.resolve("buffer/")
+      "buffer": "buffer/"
     }
   },
   module: {

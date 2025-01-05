@@ -28,10 +28,14 @@ chronicle-sync/
        - Outputs optimized ES module to `worker` directory
 
 2. **Code Changes**
-   - Write tests for new features using Jest and Cypress
+   - Write tests for new features using Vitest and Puppeteer
    - Follow TypeScript best practices and existing patterns
-   - Run `npm test` locally before committing
+   - Run tests locally before committing:
+     - Unit tests: `npm test`
+     - Watch mode: `npm run test:watch`
+     - E2E tests: `npm run test:e2e`
    - Use ESLint for code quality (`npm run lint`)
+   - Format code with Prettier (`npm run format`)
 
 2. **Documentation**
    - Technical details go in /docs

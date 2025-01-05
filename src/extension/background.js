@@ -1,8 +1,8 @@
-import { CryptoManager } from './utils/crypto';
-import { StorageManager } from './utils/storage';
-import { HistoryManager } from './utils/history';
-import { SyncManager } from './utils/sync';
-import { ApiClient } from './utils/api';
+import { ApiClient } from './utils/api.js';
+import { CryptoManager } from './utils/crypto.js';
+import { HistoryManager } from './utils/history.js';
+import { StorageManager } from './utils/storage.js';
+import { SyncManager } from './utils/sync.js';
 
 const VERSION = '1.0.0';
 let syncManager = null;

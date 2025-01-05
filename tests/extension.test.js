@@ -1,7 +1,7 @@
-const puppeteer = require('puppeteer');
-const path = require('path');
-const fs = require('fs').promises;
-const { CryptoManager } = require('../src/extension/utils/crypto');
+import fs from 'fs/promises';
+import path from 'path';
+
+import puppeteer from 'puppeteer';
 
 /**
  * This file contains end-to-end tests for the Chronicle Sync extension.
@@ -9,11 +9,7 @@ const { CryptoManager } = require('../src/extension/utils/crypto');
  */
 
 // Set timeout for all tests in this suite
-if (process.env.CI) {
-  jest.setTimeout(60000);
-} else {
-  jest.setTimeout(30000);
-}
+const timeout = process.env.CI ? 60000 : 30000;
 
 describe('Extension End-to-End Test', () => {
   let browser;
@@ -45,9 +41,11 @@ describe('Extension End-to-End Test', () => {
 
     // Build the extension
     await new Promise((resolve, reject) => {
-      require('child_process').exec('npm run build', (error) => {
-        if (error) reject(error);
-        else resolve();
+      import('child_process').then(({ exec }) => {
+        exec('npm run build', (error) => {
+          if (error) reject(error);
+          else resolve();
+        });
       });
     });
 
@@ -161,7 +159,6 @@ describe('Extension End-to-End Test', () => {
   });
 
   test('complete setup and sync flow', async () => {
-    jest.setTimeout(120000); // Increase timeout to 120 seconds
     // Visit popup page and wait for it to load
     console.log('Navigating to extension popup...');
     await page.goto(`chrome-extension://${extensionId}/popup.html`, { waitUntil: 'networkidle0' });
@@ -273,5 +270,5 @@ describe('Extension End-to-End Test', () => {
       throw e;
     }
     
-  }, process.env.CI ? 60000 : 30000);
+  }, timeout);
 });

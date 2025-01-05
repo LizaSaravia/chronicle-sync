@@ -122,4 +122,4 @@ class CryptoManager {
   }
 }
 
-module.exports = { CryptoManager };
+export { CryptoManager };
