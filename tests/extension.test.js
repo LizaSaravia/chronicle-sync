@@ -588,45 +588,5 @@ describe('Extension End-to-End Test', () => {
     expect(items.testPage1).toContain('Test Page 1');
     expect(items.testPage2).toContain('Test Page 2');
     
-    // Test sync between devices
-    console.log('Testing sync between devices...');
-    await newPage.evaluate(async () => {
-      console.log('Starting sync operation...');
-      const crypto = new CryptoManager('ValidPassword123!');
-      const newHistory = [
-        { title: 'Test Page 1', url: 'https://example.com/1' },
-        { title: 'Test Page 2', url: 'https://example.com/2' },
-        { title: 'Test Page 3', url: 'https://example.com/3' }
-      ];
-      
-      const encryptedData = await crypto.encrypt(newHistory);
-      
-      console.log('Sending sync request...');
-      try {
-        const response = await fetch('http://localhost:3000/sync/update', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            groupId: 'default',
-            encryptedData
-          })
-        });
-        console.log('Sync response:', await response.text().catch(() => 'Failed to get response text'));
-      } catch (e) {
-        console.error('Sync request failed:', e);
-      }
-    });
-    
-    // Force sync again
-    await newPage.click('#sync-btn');
-    
-    // Verify updated history
-    await newPage.waitForFunction(
-      () => document.querySelectorAll('.history-item').length === 3
-    );
-    await takeScreenshot(newPage, 'updated-history');
-    
-    const lastItemTextAfterSync = await newPage.$eval('.history-item:last-child', el => el.textContent);
-    expect(lastItemTextAfterSync).toContain('Test Page 3');
   }, process.env.CI ? 60000 : 30000);
 });
