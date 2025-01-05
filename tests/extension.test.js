@@ -58,13 +58,49 @@ describe('Extension End-to-End Test', () => {
     });
 
     // Get extension ID
-    const targets = await browser.targets();
-    const extensionTarget = targets.find(target => 
-      target.type() === 'service_worker' && 
-      target.url().includes('chrome-extension://')
-    );
-    const extensionUrl = extensionTarget.url();
+    let extensionTarget;
+    let retries = 0;
+    const maxRetries = 5;
+    
+    while (!extensionTarget && retries < maxRetries) {
+      const targets = await browser.targets();
+      extensionTarget = targets.find(target => {
+        try {
+          return target.type() === 'service_worker' && target.url().includes('chrome-extension://');
+        } catch (e) {
+          return false;
+        }
+      });
+      
+      if (!extensionTarget) {
+        retries++;
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+      }
+    }
+
+    if (!extensionTarget) {
+      const targets = await browser.targets();
+      // Try to find any extension-related target as fallback
+      extensionTarget = targets.find(target => {
+        try {
+          return target.url().includes('chrome-extension://');
+        } catch (e) {
+          return false;
+        }
+      });
+    }
+
+    if (!extensionTarget) {
+      throw new Error('Could not find extension target. Available targets: ' + 
+        JSON.stringify(await Promise.all((await browser.targets()).map(async t => ({
+          type: t.type(),
+          url: await t.url().catch(() => 'unknown')
+        }))), null, 2));
+    }
+
+    const extensionUrl = await extensionTarget.url();
     extensionId = extensionUrl.split('/')[2];
+    console.log('Found extension ID:', extensionId);
 
     page = await browser.newPage();
   });
