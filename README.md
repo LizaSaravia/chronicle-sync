@@ -2,6 +2,23 @@
 
 A secure, cross-platform browser extension for syncing your browsing data across devices. Built with modern web technologies and powered by Cloudflare's infrastructure (R2, D1, and KV store).
 
+## Screenshots
+
+<div align="center">
+
+### Initial Setup
+![Initial Setup](https://posix4e.github.io/chronicle-sync/releases/latest/screenshots/setup-flow/initial-popup.png)
+
+### Password Configuration
+![Password Setup](https://posix4e.github.io/chronicle-sync/releases/latest/screenshots/setup-flow/setup-form.png)
+
+### History Sync
+![History Sync](https://posix4e.github.io/chronicle-sync/releases/latest/screenshots/setup-flow/history-entries.png)
+
+</div>
+
+[View more screenshots](https://posix4e.github.io/chronicle-sync/latest-release)
+
 ## Features
 
 - 🔒 End-to-end encryption using password-based keys

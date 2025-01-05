@@ -84,8 +84,9 @@ jobs:
       if: failure()
       uses: actions/upload-artifact@v4
       with:
-        name: test-artifacts
+        name: test-failure-artifacts
         path: |
-          tests/screenshots/
+          tests/screenshots/**/*.png
           tests/logs/
         retention-days: 7
+        if-no-files-found: ignore
