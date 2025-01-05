@@ -82,14 +82,28 @@ jobs:
       - name: Build worker
         if: success()
         run: |
-          # Build the worker in its own directory
+          # Ensure clean worker directory exists
+          rm -rf dist/worker
           mkdir -p dist/worker
+          echo "Created dist/worker directory:"
+          ls -la dist/
+
+          # Build the worker
           echo "Building worker..."
-          pnpm webpack --config webpack.worker.js --mode production --output-path dist/worker
+          pnpm webpack --config webpack.worker.js --mode production
+          
+          # Debug output
+          echo "Contents of dist directory:"
+          ls -la dist/
+          echo "Contents of dist/worker directory:"
+          ls -la dist/worker/ || echo "dist/worker directory not found!"
           
           # Verify worker build succeeded
           if [ ! -f "dist/worker/worker.js" ]; then
             echo "Error: Worker build failed - worker.js not found"
+            echo "Current directory: $(pwd)"
+            echo "Webpack worker config:"
+            cat webpack.worker.js
             exit 1
           fi
 
