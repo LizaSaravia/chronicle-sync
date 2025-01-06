@@ -1,8 +1,13 @@
 # Chronicle Sync Screenshots
 
-Latest screenshots from our E2E tests, automatically updated with each successful build.
+Screenshots from our E2E tests, automatically updated with each build. Screenshots are captured during our end-to-end testing process to verify the application's functionality and appearance.
 
 ## Latest Build Screenshots
+
+> Note: Screenshots are updated automatically when tests run. Both successful and failed test screenshots are shown to help identify potential UI issues. Screenshots are organized into sections based on test outcomes.
+>
+> - ✅ **Success**: Screenshots from passing test runs
+> - ❌ **Failure**: Screenshots from failing test runs that may help debug issues
 
 <!-- SCREENSHOTS_START -->
 <!-- Screenshots will be automatically inserted here -->
