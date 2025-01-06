@@ -26,11 +26,20 @@ test.describe('Dashboard E2E Tests', () => {
       </html>
     `);
 
+    // Use the screenshot directory from environment variable
+    const screenshotDir = process.env.SCREENSHOT_DIR || 'test-results/screenshots';
+
+    // Take screenshot of initial dashboard state
+    await page.screenshot({ path: `${screenshotDir}/dashboard-initial.png` });
+
     // Verify dashboard content
     await expect(page.getByText('Chronicle Sync Dashboard')).toBeVisible();
     await expect(page.getByText('Example Entry')).toBeVisible();
     await expect(page.getByText('https://example.com')).toBeVisible();
     await expect(page.getByText('Device: test-device')).toBeVisible();
     await expect(page.getByText('OS: test-os')).toBeVisible();
+
+    // Take screenshot after verifying content
+    await page.screenshot({ path: `${screenshotDir}/dashboard-verified.png` });
   });
 });

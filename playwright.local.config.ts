@@ -13,7 +13,9 @@ export default defineConfig({
   use: {
     trace: 'on',
     video: 'on',
-    screenshot: 'on'
+    screenshot: 'on',
+    // Use the environment variable for screenshot directory if provided
+    _screenshotDir: process.env.SCREENSHOT_DIR || './test-results/screenshots',
   },
   globalSetup: './tests/e2e/setup.ts',
   projects: [
@@ -24,10 +26,4 @@ export default defineConfig({
       },
     },
   ],
-  // Start a web server for dashboard tests
-  use: {
-    trace: 'on',
-    video: 'on',
-    screenshot: 'on'
-  },
 });

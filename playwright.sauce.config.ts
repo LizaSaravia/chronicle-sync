@@ -13,6 +13,9 @@ export default defineConfig({
   use: {
     trace: 'on-first-retry',
     video: 'on-first-retry',
+    screenshot: 'on',
+    // Use the environment variable for screenshot directory if provided
+    _screenshotDir: process.env.SCREENSHOT_DIR || './test-results/screenshots',
   },
   projects: [
     {

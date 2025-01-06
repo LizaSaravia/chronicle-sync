@@ -71,6 +71,15 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-${{ github.sha }}
+          path: docs/screenshots/e2e-debug/**/*.png
+          retention-days: 14
+          if-no-files-found: ignore
+
       - name: Build extension and dashboard
         if: success()
         run: |
@@ -144,6 +153,8 @@ jobs:
         if: success()
         continue-on-error: true
         run: |
+          # Ensure screenshot directory exists and is empty
+          rm -rf docs/screenshots/e2e-debug
           mkdir -p docs/screenshots/e2e-debug
           
           # Run tests on SauceLabs
