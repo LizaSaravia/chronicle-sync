@@ -51,8 +51,7 @@ jobs:
           wrangler pages deploy dist/dashboard \
             --project-name chronicle-sync \
             --branch staging \
-            --commit-dirty=true \
-            --custom-domain dashboard-staging.chroniclesync.xyz
+            --commit-dirty=true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -107,8 +106,7 @@ jobs:
           wrangler pages deploy dist/dashboard \
             --project-name chronicle-sync \
             --branch main \
-            --commit-dirty=true \
-            --custom-domain dashboard.chroniclesync.xyz
+            --commit-dirty=true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
