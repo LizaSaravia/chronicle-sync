@@ -8,7 +8,7 @@ const VERSION = '1.0.0';
 let syncManager = null;
 
 // Initialize sync with password
-async function initializeSync(password) {
+async function initializeSync(password, environment = 'production') {
   try {
     if (!password || typeof password !== 'string' || password.length < 8) {
       throw new Error('Password must be at least 8 characters long');
@@ -16,7 +16,7 @@ async function initializeSync(password) {
 
     const crypto = new CryptoManager(password);
     const storage = new StorageManager(crypto);
-    const api = new ApiClient(process.env.NODE_ENV === 'production' ? 'production' : 'staging');
+    const api = new ApiClient(environment);
     const history = new HistoryManager(storage, api);
     
     // Test crypto initialization
@@ -60,7 +60,7 @@ chrome.runtime.onInstalled.addListener(async () => {
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'INITIALIZE') {
-    initializeSync(message.password)
+    initializeSync(message.password, message.environment)
       .then(() => {
         chrome.action.setBadgeText({ text: '' });
         sendResponse({ success: true });

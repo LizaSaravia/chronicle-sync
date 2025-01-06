@@ -97,19 +97,67 @@ chronicle-sync/
 - Input validation on both client and worker
 - Regular dependency audits
 
-## Deployment Process
+## CI/CD and Deployment Process
 
-### Staging
-1. Merge to main branch
-2. Automated deployment to staging
-3. Beta release created on GitHub
-4. Uses staging Cloudflare resources
+### CI/CD Pipeline (ci.yml)
+1. **Triggers**:
+   - Push to main/staging branches
+   - Version tags (v*)
+   - Pull requests
+   - Manual workflow dispatch
 
-### Production
-1. Tag release (vX.Y.Z)
-2. Automated deployment to production
-3. GitHub release with changelog
-4. Manual extension store updates
+2. **Build and Test**:
+   - Uses pnpm and Node.js 20.x
+   - Installs Chrome for Puppeteer tests
+   - Runs linting and unit tests
+   - Builds extension, dashboard, and worker
+   - Runs E2E tests with screenshot capture
+   - Uploads test and build artifacts
+
+3. **Releases**:
+   - Beta release on main branch:
+     * Creates/updates beta tag
+     * Uploads extension zip
+     * Marks as prerelease
+   - Production release on version tags:
+     * Creates new release
+     * Uploads extension zip
+     * Auto-generates release notes
+
+### Cloudflare Deployments
+Triggered automatically after successful CI/CD workflow:
+
+1. **Pages Deployment (cloudflare-pages.yml)**:
+   - Staging: Deploys dashboard to staging branch
+   - Production: Deploys to main branch on version tags
+   - Uses Wrangler for deployment
+   - Requires Cloudflare API token and account ID
+
+2. **Worker Deployment (cloudflare-worker.yml)**:
+   - Staging: Deploys worker from main branch
+   - Production: Deploys on version tags
+   - Includes JS syntax validation
+   - Generates environment-specific Wrangler configs
+   - Uses staging/production DB and KV namespaces
+
+### Deployment Flow
+1. **Staging Environment**:
+   - Triggered by merges to main branch
+   - Deploys to staging Cloudflare environment
+   - Creates/updates beta release
+   - Useful for testing before production
+
+2. **Production Environment**:
+   - Triggered by version tags (vX.Y.Z)
+   - Deploys to production Cloudflare environment
+   - Creates GitHub release with changelog
+   - Requires manual extension store updates
+
+### OpenHands Integration
+- Automated issue/PR handling via openhands-resolver.yml
+- Triggered by labels and comments
+- Configurable through repository variables
+- Uses OpenHands AI for automated responses
 
 ## Version Control
 

@@ -126,7 +126,7 @@ describe('App', () => {
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
-        'https://api.chroniclesync.xyz/history',
+        'https://api.chroniclesync.xyz/api/history',
         expect.objectContaining({
           method: 'POST',
           body: expect.stringContaining(newEntry.url)

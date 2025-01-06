@@ -2,7 +2,12 @@ import { Add as AddIcon, Edit as EditIcon } from '@mui/icons-material';
 import {
   AppBar,
   Box,
+  Button,
   Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   IconButton,
   Paper,
   Table,
@@ -11,18 +16,16 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TextField,
   Toolbar,
-  Typography,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField
+  Typography
 } from '@mui/material';
 import React, { useState, useEffect } from 'react';
 
+import { getApiBase } from './config';
+
 function App() {
+  const apiBase = getApiBase();
   const [history, setHistory] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [editItem, setEditItem] = useState(null);
@@ -40,7 +43,7 @@ function App() {
 
   const fetchHistory = async () => {
     try {
-      const response = await fetch('https://api.chroniclesync.xyz/history');
+      const response = await fetch(`${apiBase}/api/history`);
       const data = await response.json();
       setHistory(data);
     } catch (error) {
@@ -76,8 +79,8 @@ function App() {
     try {
       const method = editItem ? 'PUT' : 'POST';
       const url = editItem 
-        ? `https://api.chroniclesync.xyz/history/${editItem.id}`
-        : 'https://api.chroniclesync.xyz/history';
+        ? `${apiBase}/api/history/${editItem.id}`
+        : `${apiBase}/api/history`;
 
       await fetch(url, {
         method,

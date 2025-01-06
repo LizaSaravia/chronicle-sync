@@ -16,13 +16,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     errorDiv.style.display = 'none';
   }
 
-  // Check if already initialized
+  // Check if already initialized and get current environment
   try {
-    const storage = await chrome.storage.local.get('initialized');
+    const storage = await chrome.storage.local.get(['initialized', 'environment']);
     if (storage.initialized) {
       setupForm.style.display = 'none';
       showSuccess('Chronicle Sync is already set up and running.');
       return;
+    }
+    // Set environment dropdown to current value if exists
+    if (storage.environment) {
+      document.getElementById('environment').value = storage.environment;
     }
   } catch (error) {
     showError('Failed to check initialization status: ' + error.message);
@@ -33,6 +37,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     const password = document.getElementById('password').value;
     const confirmPassword = document.getElementById('confirm-password').value;
+    const environment = document.getElementById('environment').value;
 
     if (!password || password !== confirmPassword) {
       showError('Passwords do not match or are empty');
@@ -43,9 +48,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       setupBtn.disabled = true;
       errorDiv.style.display = 'none';
       
+      // Save environment setting
+      await chrome.storage.local.set({ environment });
+
       const response = await chrome.runtime.sendMessage({
         type: 'INITIALIZE',
-        password
+        password,
+        environment
       });
 
       if (response.success) {

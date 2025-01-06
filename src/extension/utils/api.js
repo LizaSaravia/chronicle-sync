@@ -1,10 +1,10 @@
 const API_BASE = {
-  staging: 'https://chronicle-sync-staging.workers.dev',
-  production: 'https://chronicle-sync.workers.dev'
+  staging: 'https://api-staging.chroniclesync.xyz',
+  production: 'https://api.chroniclesync.xyz'
 };
 
 export class ApiClient {
-  constructor(environment = 'production') {
+  constructor(environment = process.env.NODE_ENV === 'development' ? 'staging' : 'production') {
     this.baseUrl = API_BASE[environment];
     this.setupOfflineDetection();
   }

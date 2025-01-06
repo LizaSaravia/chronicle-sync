@@ -5,6 +5,7 @@ compatibility_date = "2023-12-01"
 [env.staging]
 name = "chronicle-sync-staging"
 vars = { ENVIRONMENT = "staging" }
+route = { pattern = "api-staging.chroniclesync.xyz", custom_domain = true }
 
 [[env.staging.r2_buckets]]
 binding = "SYNC_BUCKET"
@@ -22,6 +23,7 @@ id = "$STAGING_KV_ID"
 [env.production]
 name = "chronicle-sync"
 vars = { ENVIRONMENT = "production" }
+route = { pattern = "api.chroniclesync.xyz", custom_domain = true }
 
 [[env.production.r2_buckets]]
 binding = "SYNC_BUCKET"
