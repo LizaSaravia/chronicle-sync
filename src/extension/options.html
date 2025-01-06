@@ -58,6 +58,56 @@
       background: #ccc;
       cursor: not-allowed;
     }
+    .info-box {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .code-box {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 12px 0;
+    }
+    .code-box code {
+      font-family: monospace;
+      font-size: 16px;
+      color: #1a73e8;
+    }
+    .icon-btn {
+      background: none;
+      border: none;
+      padding: 8px;
+      cursor: pointer;
+      color: #666;
+      width: auto;
+    }
+    .icon-btn:hover {
+      background: #f5f5f5;
+      border-radius: 4px;
+    }
+    .copy-success {
+      color: #2e7d32;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+    .dashboard-link {
+      margin-top: 16px;
+      font-size: 14px;
+    }
+    .dashboard-link a {
+      color: #1a73e8;
+      text-decoration: none;
+    }
+    .dashboard-link a:hover {
+      text-decoration: underline;
+    }
     .error {
       color: #d32f2f;
       background: #ffebee;
@@ -81,6 +131,29 @@
     <h1>Chronicle Sync Setup</h1>
     <div class="error" id="error"></div>
     <div class="success" id="success"></div>
+
+    <div id="sync-info" style="display: none;">
+      <div class="info-box">
+        <h2>Your Sync Group ID</h2>
+        <p>You'll need this ID to view your history in the Chronicle Sync Dashboard:</p>
+        <div class="code-box">
+          <code id="group-id">Loading...</code>
+          <button id="copy-btn" class="icon-btn" title="Copy to clipboard">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+        </div>
+        <div id="copy-success" class="copy-success" style="display: none;">
+          Copied to clipboard!
+        </div>
+        <p class="dashboard-link">
+          Visit the <a href="https://dashboard.chroniclesync.xyz" target="_blank">Chronicle Sync Dashboard</a>
+          to view your browsing history.
+        </p>
+      </div>
+    </div>
     
     <form id="setup-form">
       <div class="form-group">

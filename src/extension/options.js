@@ -30,12 +30,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     errorDiv.style.display = 'none';
   }
 
+  // Handle copy button click
+  document.getElementById('copy-btn').addEventListener('click', async () => {
+    const groupId = document.getElementById('group-id').textContent;
+    try {
+      await navigator.clipboard.writeText(groupId);
+      const copySuccess = document.getElementById('copy-success');
+      copySuccess.style.display = 'block';
+      setTimeout(() => {
+        copySuccess.style.display = 'none';
+      }, 2000);
+    } catch (error) {
+      showError('Failed to copy to clipboard: ' + error.message);
+    }
+  });
+
   // Check if already initialized and get current environment
   try {
-    const storage = await chrome.storage.local.get(['initialized', 'environment']);
+    const storage = await chrome.storage.local.get(['initialized', 'environment', 'groupId']);
     if (storage.initialized) {
       setupForm.style.display = 'none';
-      showSuccess('Chronicle Sync is already set up and running.');
+      const syncInfo = document.getElementById('sync-info');
+      
+      if (storage.groupId) {
+        document.getElementById('group-id').textContent = storage.groupId;
+        syncInfo.style.display = 'block';
+        showSuccess('Chronicle Sync is set up and running.');
+      } else {
+        // If no group ID yet, show a message that it's still being created
+        showSuccess('Chronicle Sync is initializing. Please wait a moment and refresh this page.');
+      }
       return;
     }
     // Set environment dropdown to current value if exists

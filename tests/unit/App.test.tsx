@@ -4,6 +4,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import App from '../../src/dashboard/App';
+import { AuthService } from '../../src/dashboard/services/auth';
 
 const theme = createTheme({
   palette: {
@@ -21,6 +22,11 @@ const theme = createTheme({
 global.fetch = vi.fn();
 
 describe('App', () => {
+  const mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+  afterEach(() => {
+    mockConsoleError.mockClear();
+  });
   beforeEach(() => {
     fetch.mockReset();
     // Default mock for fetch to return empty array
@@ -28,6 +34,11 @@ describe('App', () => {
       ok: true,
       json: async () => []
     });
+
+    // Mock AuthService
+    vi.spyOn(AuthService, 'isAuthenticated').mockReturnValue(true);
+    vi.spyOn(AuthService, 'getToken').mockReturnValue('mock-token');
+    vi.spyOn(AuthService, 'getGroupId').mockReturnValue('mock-group');
   });
 
   it('renders the dashboard title', async () => {
@@ -147,6 +158,76 @@ describe('App', () => {
           body: expect.stringContaining(newEntry.url)
         })
       );
+    });
+  });
+
+  it('handles API errors gracefully', async () => {
+    fetch.mockRejectedValueOnce(new Error('API Error'));
+
+    await act(async () => {
+      render(
+        <ThemeProvider theme={theme}>
+          <App />
+        </ThemeProvider>
+      );
+    });
+
+    await waitFor(() => {
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        'Error fetching history:',
+        expect.any(Error)
+      );
+    });
+  });
+
+  it('handles network timeout', async () => {
+    fetch.mockImplementationOnce(() => new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('timeout')), 100);
+    }));
+
+    await act(async () => {
+      render(
+        <ThemeProvider theme={theme}>
+          <App />
+        </ThemeProvider>
+      );
+    });
+
+    await waitFor(() => {
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        'Error fetching history:',
+        expect.any(Error)
+      );
+    });
+  });
+
+  it('handles offline mode', async () => {
+    // Simulate offline mode
+    const originalOnline = window.navigator.onLine;
+    Object.defineProperty(window.navigator, 'onLine', {
+      value: false,
+      writable: true
+    });
+
+    await act(async () => {
+      render(
+        <ThemeProvider theme={theme}>
+          <App />
+        </ThemeProvider>
+      );
+    });
+
+    await waitFor(() => {
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        'Error fetching history:',
+        expect.any(Error)
+      );
+    });
+
+    // Restore online status
+    Object.defineProperty(window.navigator, 'onLine', {
+      value: originalOnline,
+      writable: true
     });
   });
 });

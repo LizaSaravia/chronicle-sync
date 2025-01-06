@@ -26,6 +26,8 @@ export class HistoryManager {
         const { groupId: newGroupId } = await this.api.createSyncGroup(deviceId);
         groupId = newGroupId;
         await this.db.setSyncMeta('groupId', groupId);
+        // Save to chrome.storage.local for the options page
+        await chrome.storage.local.set({ groupId });
       } catch (error) {
         console.warn('Failed to create sync group, will retry later:', error);
       }
@@ -69,12 +71,22 @@ export class HistoryManager {
       maxResults,
       startTime: startTime || (Date.now() - 90 * 24 * 60 * 60 * 1000) // Last 90 days by default
     };
-    const items = await chrome.history.search(query);
-    // Add titles if they're missing
-    return items.map(item => ({
-      ...item,
-      title: item.title || url.split('/').pop() || 'Untitled'
-    }));
+    try {
+      const items = await chrome.history.search(query);
+      // Handle case where search fails or returns no results
+      if (!items || !Array.isArray(items)) {
+        console.warn('History search returned invalid result:', items);
+        return [];
+      }
+      // Add titles if they're missing
+      return items.map(item => ({
+        ...item,
+        title: item.title || url.split('/').pop() || 'Untitled'
+      }));
+    } catch (error) {
+      console.error('Failed to search history:', error);
+      return [];
+    }
   }
 
   async loadInitialHistory() {

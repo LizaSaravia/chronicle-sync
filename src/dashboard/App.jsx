@@ -22,34 +22,113 @@ import {
 } from '@mui/material';
 import React, { useState, useEffect } from 'react';
 
+import { Login } from './components/Login';
 import { getApiBase } from './config';
+import { AuthService } from './services/auth';
 
 function App() {
   const apiBase = getApiBase();
   const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(AuthService.isAuthenticated());
   const [openDialog, setOpenDialog] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [formData, setFormData] = useState({
     url: '',
     title: '',
-    visitTime: '',
+    visitTime: new Date().toISOString(),
     hostName: '',
     os: ''
   });
+
+  // Check online status
+  const [isOnline, setIsOnline] = useState(window.navigator.onLine);
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     fetchHistory();
   }, []);
 
   const fetchHistory = async () => {
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
+
+    if (!isOnline) {
+      const error = new Error('Network is offline');
+      console.error('Error fetching history:', error);
+      setError(error.message);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
     try {
-      const response = await fetch(`${apiBase}/api/history`);
-      const data = await response.json();
-      setHistory(data);
+      const token = AuthService.getToken();
+      const groupId = AuthService.getGroupId();
+
+      if (!token || !groupId) {
+        AuthService.clearAuth();
+        setIsAuthenticated(false);
+        throw new Error('Authentication required');
+      }
+
+      // Create AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), process.env.NODE_ENV === 'test' ? 50 : 5000);
+
+      try {
+        const response = await fetch(`${apiBase}/api/history/${groupId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            AuthService.clearAuth();
+            setIsAuthenticated(false);
+            throw new Error('Authentication expired. Please log in again.');
+          }
+          throw new Error('Failed to fetch history data');
+        }
+
+        const data = await response.json();
+        setHistory(data);
+      } catch (error) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          throw new Error('Request timed out');
+        }
+        throw error;
+      }
     } catch (error) {
       console.error('Error fetching history:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
   };
+
+
 
   const handleAdd = () => {
     setEditItem(null);
@@ -97,6 +176,13 @@ function App() {
     }
   };
 
+  if (!isAuthenticated) {
+    return <Login onLogin={() => {
+      setIsAuthenticated(true);
+      fetchHistory();
+    }} />;
+  }
+
   return (
     <Box sx={{ flexGrow: 1 }}>
       <AppBar position="static">
@@ -104,51 +190,79 @@ function App() {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Chronicle Sync Dashboard
           </Typography>
-          <IconButton 
-            color="inherit" 
+          <IconButton
+            color="inherit"
             onClick={handleAdd}
             aria-label="add history entry"
           >
             <AddIcon />
           </IconButton>
+          <Button 
+            color="inherit" 
+            onClick={() => {
+              AuthService.clearAuth();
+              setIsAuthenticated(false);
+              setHistory([]);
+            }}
+          >
+            Logout
+          </Button>
         </Toolbar>
       </AppBar>
 
       <Container sx={{ mt: 4 }}>
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Title</TableCell>
-                <TableCell>URL</TableCell>
-                <TableCell>Visit Time</TableCell>
-                <TableCell>Host</TableCell>
-                <TableCell>OS</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {history.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>{item.title}</TableCell>
-                  <TableCell>{item.url}</TableCell>
-                  <TableCell>{new Date(item.visitTime).toLocaleString()}</TableCell>
-                  <TableCell>{item.hostName}</TableCell>
-                  <TableCell>{item.os}</TableCell>
-                  <TableCell>
-                    <IconButton
-                      onClick={() => handleEdit(item)}
-                      size="small"
-                      aria-label="edit"
-                    >
-                      <EditIcon />
-                    </IconButton>
-                  </TableCell>
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+            <Typography>Loading history...</Typography>
+          </Box>
+        ) : error ? (
+          <Box sx={{ mt: 4 }}>
+            <Paper sx={{ p: 3, bgcolor: 'error.light', color: 'error.contrastText' }}>
+              <Typography>{error}</Typography>
+            </Paper>
+          </Box>
+        ) : history.length === 0 ? (
+          <Box sx={{ mt: 4 }}>
+            <Paper sx={{ p: 3 }}>
+              <Typography>No browsing history found for this sync group.</Typography>
+            </Paper>
+          </Box>
+        ) : (
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Title</TableCell>
+                  <TableCell>URL</TableCell>
+                  <TableCell>Visit Time</TableCell>
+                  <TableCell>Host</TableCell>
+                  <TableCell>OS</TableCell>
+                  <TableCell>Actions</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {history.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>{item.title}</TableCell>
+                    <TableCell>{item.url}</TableCell>
+                    <TableCell>{new Date(item.visitTime).toLocaleString(undefined, { timeZoneName: 'short' })}</TableCell>
+                    <TableCell>{item.hostName}</TableCell>
+                    <TableCell>{item.os}</TableCell>
+                    <TableCell>
+                      <IconButton
+                        onClick={() => handleEdit(item)}
+                        size="small"
+                        aria-label="edit"
+                      >
+                        <EditIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
       </Container>
 
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>

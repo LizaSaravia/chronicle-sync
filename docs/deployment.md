@@ -4,9 +4,27 @@ This document describes the deployment process for Chronicle Sync, including the
 
 ## Overview
 
-Chronicle Sync uses GitHub Actions for continuous integration and deployment, with separate workflows for:
-1. Building and testing (`ci.yml`)
-2. Deploying to Cloudflare Pages (`cloudflare-pages.yml`)
+Chronicle Sync uses GitHub Actions for continuous integration and deployment, with three main workflows:
+
+1. **CI/CD Pipeline** (`ci.yml`)
+   - Runs tests and builds all components
+   - Creates GitHub releases
+   - Deploys documentation to GitHub Pages
+   - Triggers deployment workflows on success
+
+2. **Cloudflare Pages Deployment** (`cloudflare-pages.yml`)
+   - Triggered by successful CI/CD workflow
+   - Deploys dashboard to staging on main branch
+   - Deploys to production on version tags
+   - Configures custom domains
+
+3. **Cloudflare Worker Deployment** (`cloudflare-worker.yml`)
+   - Triggered by successful CI/CD workflow
+   - Deploys worker to staging on main branch
+   - Deploys to production on version tags
+   - Includes syntax validation
+
+For details about the testing and deployment configuration structure, see the [Configuration Guide](configuration.md).
 
 ## Build Process
 

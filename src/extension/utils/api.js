@@ -13,19 +13,48 @@ export class ApiClient {
     // Use globalThis to work in both window and service worker contexts
     const context = typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : globalThis;
     
-    // Default to online if we can't detect
-    this.isOnline = context.navigator?.onLine ?? true;
+    const checkConnection = async () => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
+        const response = await fetch(`${this.baseUrl}/api/health`, {
+          method: 'HEAD',
+          signal: controller.signal,
+          headers: { 
+            'Origin': chrome.runtime.getURL(''),
+            'X-Extension-ID': chrome.runtime.id
+          },
+          credentials: 'include'
+        });
+        
+        clearTimeout(timeoutId);
+        this.isOnline = response.ok;
+        if (this.isOnline) {
+          this.onOnline?.();
+        }
+      } catch (error) {
+        this.isOnline = false;
+      }
+    };
+
+    // Initial check
+    checkConnection();
     
+    // Listen for online/offline events
     if (typeof context.addEventListener === 'function') {
       context.addEventListener('online', () => {
-        console.log('Network is online');
-        this.isOnline = true;
-        this.onOnline?.();
+        console.log('Network event: online');
+        checkConnection();
       });
+      
       context.addEventListener('offline', () => {
-        console.log('Network is offline');
+        console.log('Network event: offline');
         this.isOnline = false;
       });
+      
+      // Periodic check every 30 seconds
+      setInterval(checkConnection, 30000);
     }
   }
 
@@ -41,7 +70,12 @@ export class ApiClient {
     try {
       const response = await fetch(`${this.baseUrl}/api/create-group`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Origin': chrome.runtime.getURL(''),
+          'X-Extension-ID': chrome.runtime.id
+        },
+        credentials: 'include',
         body: JSON.stringify({ deviceId })
       });
 
@@ -67,7 +101,12 @@ export class ApiClient {
       const timestamp = Date.now();
       const response = await fetch(`${this.baseUrl}/api/sync`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Origin': chrome.runtime.getURL(''),
+          'X-Extension-ID': chrome.runtime.id
+        },
+        credentials: 'include',
         body: JSON.stringify({
           groupId,
           deviceId,
@@ -102,7 +141,14 @@ export class ApiClient {
       });
 
       const response = await fetch(
-        `${this.baseUrl}/api/get-updates?${params.toString()}`
+        `${this.baseUrl}/api/get-updates?${params.toString()}`,
+        {
+          headers: { 
+            'Origin': chrome.runtime.getURL(''),
+            'X-Extension-ID': chrome.runtime.id
+          },
+          credentials: 'include'
+        }
       );
 
       if (!response.ok) {
