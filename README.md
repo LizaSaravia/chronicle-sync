@@ -50,4 +50,3 @@ See our [Development Guide](DEVELOPMENT.md) for detailed setup instructions and 
 - [Technical Documentation](/docs)
 - [Contributing Guidelines](CONTRIBUTING.md)
 - [Development Guide](DEVELOPMENT.md)
-- [Security Model](/docs/security.md)
