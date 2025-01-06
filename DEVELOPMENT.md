@@ -79,9 +79,10 @@ chronicle-sync/
    - Run with `npm test`
 
 2. **E2E Tests**
-   - Use Puppeteer for browser automation
+   - Use Playwright for browser automation
    - Test complete user flows
    - Run with `npm run test:e2e`
+   - Run with `npm run test:e2e:dashboard` for dashboard tests
 
 3. **Screenshots**
    - Generated during E2E tests
@@ -108,7 +109,7 @@ chronicle-sync/
 
 2. **Build and Test**:
    - Uses pnpm and Node.js 20.x
-   - Installs Chrome for Puppeteer tests
+   - Installs Playwright browsers
    - Runs linting and unit tests
    - Builds extension, dashboard, and worker
    - Runs E2E tests with screenshot capture

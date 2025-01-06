@@ -16,3 +16,12 @@ wrangler.toml
 wrangler.dashboard.toml
 wrangler.worker.toml
 wrangler.pages.toml
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

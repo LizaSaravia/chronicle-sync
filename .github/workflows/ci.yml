@@ -39,16 +39,10 @@ jobs:
           node-version: '20.x'
           cache: 'pnpm'
 
-      - name: Install Chrome
-        uses: browser-actions/setup-chrome@v1
-        with:
-          chrome-version: stable
-
-      - name: Install Puppeteer browsers
-        run: npx puppeteer browsers install chrome
-
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          pnpm store prune
+          pnpm install --frozen-lockfile
 
       - name: Setup Turbo cache
         uses: actions/cache@v4
@@ -62,10 +56,9 @@ jobs:
         run: pnpm turbo lint
 
       - name: Run unit tests
-        run: pnpm vitest run tests/dashboard/App.test.jsx tests/setup.test.js
+        run: pnpm run test:unit
         env:
           CI: true
-          CHROME_PATH: /usr/bin/google-chrome
 
       - name: Upload test artifacts
         if: always()
@@ -141,17 +134,25 @@ jobs:
             exit 1
           fi
 
+      - name: Install Playwright
+        if: success()
+        run: |
+          # Install Playwright and its dependencies
+          pnpm exec playwright install --with-deps chromium
+
       - name: Run E2E tests
         id: e2e_tests
         if: success()
         continue-on-error: true
         run: |
           mkdir -p docs/screenshots/e2e-debug
-          xvfb-run --auto-servernum pnpm turbo test:e2e
+          
+          # Run tests on SauceLabs
+          SAUCE_USERNAME=${{ secrets.SAUCE_USERNAME }} \
+          SAUCE_ACCESS_KEY=${{ secrets.SAUCE_ACCESS_KEY }} \
+          NODE_ENV=test pnpm run build && pnpm exec playwright test --config=playwright.sauce.config.ts
         env:
           CI: true
-          DISPLAY: :99
-          CHROME_PATH: /usr/bin/google-chrome
           SCREENSHOTS_FOR_DOCS: ${{ github.event_name == 'pull_request' }}
           SCREENSHOT_DIR: docs/screenshots/e2e-debug
 

@@ -1,5 +1,4 @@
-import CssBaseline from '@mui/material/CssBaseline/index.js';
-import { ThemeProvider, createTheme } from '@mui/material/styles/index.js';
+import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 
