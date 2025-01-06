@@ -49,9 +49,15 @@ Welcome to the Chronicle Sync documentation. This guide covers everything from u
   - Offline support
   - Selective sync options
 
-## Latest Updates
+## Latest Screenshots
 
-- [Test Results & Screenshots](test-results.html)
+<div class="screenshot-grid">
+<!-- LATEST_SCREENSHOTS -->
+</div>
+
+[View Full Screenshot Gallery](gallery/) | [View Test Results](test-results.html)
+
+## Latest Updates
 - [Release History](https://github.com/posix4e/chronicle-sync/releases)
 - [CI/CD Status](https://github.com/posix4e/chronicle-sync/actions/workflows/ci.yml)
 

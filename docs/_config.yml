@@ -9,3 +9,4 @@ kramdown:
 # Custom styles
 custom_css:
   - /assets/css/screenshots.css
+  - /assets/css/gallery.css

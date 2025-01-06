@@ -133,6 +133,7 @@ jobs:
           # Create all required directories upfront
           mkdir -p docs/screenshots/e2e-debug/{success,failure}
           mkdir -p docs/screenshots/latest/{success,failure}
+          mkdir -p docs/gallery/{latest,archive}
           touch docs/screenshots/e2e-debug/.keep
 
       - name: Run E2E tests
@@ -170,7 +171,15 @@ jobs:
       - name: Process Screenshots
         if: always()
         run: |
+          # Set up variables
+          GALLERY_DIR="docs/gallery"
+          ARCHIVE_DIR="$GALLERY_DIR/archive"
+          LATEST_DIR="$GALLERY_DIR/latest"
+          RUN_DATE=$(date -u '+%Y-%m-%d')
+          RUN_ID="${{ github.run_id }}"
+          
           # Ensure directories exist
+          mkdir -p "$LATEST_DIR" "$ARCHIVE_DIR/$RUN_DATE-$RUN_ID"
           mkdir -p docs/screenshots/latest/{success,failure}
 
           # Generate screenshots page
@@ -239,41 +248,72 @@ jobs:
           sed -i "s/<!-- SCREENSHOTS_START -->.*<!-- SCREENSHOTS_END -->/<!-- SCREENSHOTS_START -->\n$(cat screenshots_content.tmp)\n<!-- SCREENSHOTS_END -->/g" docs/screenshots.md
           sed -i "s/<!-- DATE -->/$(date -u '+%Y-%m-%d %H:%M UTC')/g" docs/screenshots.md
 
-          # Create a compact gallery for the main page (only first 4 screenshots)
-          count=0
-          echo "" > main_gallery.tmp
-          
-          # First try successful screenshots
-          if [ "$success_found" = true ]; then
-            for img in docs/screenshots/latest/success/*.png; do
-              if [ -f "$img" ] && [ $count -lt 4 ]; then
+          # Copy screenshots to gallery
+          if [ "$success_found" = true ] || [ "$failure_found" = true ]; then
+            # Archive current screenshots
+            ARCHIVE_PATH="$ARCHIVE_DIR/$RUN_DATE-$RUN_ID"
+            cp -r docs/screenshots/latest/* "$ARCHIVE_PATH/"
+            
+            # Update latest screenshots
+            rm -rf "$LATEST_DIR"/*
+            cp -r docs/screenshots/latest/* "$LATEST_DIR/"
+            
+            # Generate gallery index content
+            echo "## Latest Screenshots ($(date -u '+%Y-%m-%d %H:%M UTC'))" > gallery_content.tmp
+            echo "" >> gallery_content.tmp
+            echo "<div class=\"screenshot-grid\">" >> gallery_content.tmp
+            
+            # Add successful screenshots first
+            if [ "$success_found" = true ]; then
+              find "$LATEST_DIR/success" -name "*.png" | sort | head -n 4 | while read img; do
                 filename=$(basename "$img")
-                echo "<a href=\"screenshots.html#${filename%.png}\" class=\"screenshot-preview\">" >> main_gallery.tmp
-                echo "  <img src=\"screenshots/latest/success/$filename\" alt=\"${filename%.png}\" />" >> main_gallery.tmp
-                echo "</a>" >> main_gallery.tmp
-                count=$((count + 1))
-              fi
-            done
-          fi
-          
-          # If we still need more, add failed screenshots
-          if [ "$failure_found" = true ] && [ $count -lt 4 ]; then
-            for img in docs/screenshots/latest/failure/*.png; do
-              if [ -f "$img" ] && [ $count -lt 4 ]; then
+                echo "<div class=\"screenshot-item success\">" >> gallery_content.tmp
+                echo "  <img src=\"latest/success/$filename\" alt=\"${filename%.png}\" />" >> gallery_content.tmp
+                echo "  <span class=\"status\">✅ Success</span>" >> gallery_content.tmp
+                echo "</div>" >> gallery_content.tmp
+              done
+            fi
+            
+            # Add failed screenshots if we have space
+            if [ "$failure_found" = true ]; then
+              find "$LATEST_DIR/failure" -name "*.png" | sort | head -n 2 | while read img; do
                 filename=$(basename "$img")
-                echo "<a href=\"screenshots.html#${filename%.png}\" class=\"screenshot-preview\">" >> main_gallery.tmp
-                echo "  <img src=\"screenshots/latest/failure/$filename\" alt=\"${filename%.png}\" />" >> main_gallery.tmp
-                echo "</a>" >> main_gallery.tmp
-                count=$((count + 1))
+                echo "<div class=\"screenshot-item failure\">" >> gallery_content.tmp
+                echo "  <img src=\"latest/failure/$filename\" alt=\"${filename%.png}\" />" >> gallery_content.tmp
+                echo "  <span class=\"status\">❌ Failed</span>" >> gallery_content.tmp
+                echo "</div>" >> gallery_content.tmp
+              done
+            fi
+            
+            echo "</div>" >> gallery_content.tmp
+            echo "" >> gallery_content.tmp
+            echo "[View Full Gallery](gallery/)" >> gallery_content.tmp
+            
+            # Update gallery index
+            sed -i "s/<!-- LATEST_SCREENSHOTS -->.*<!-- RECENT_BUILDS -->/<!-- LATEST_SCREENSHOTS -->\n$(cat gallery_content.tmp)\n\n## Recent Builds\n\n<!-- RECENT_BUILDS -->/g" docs/gallery/index.md
+            
+            # Update recent builds list
+            echo "| Date | Status | Screenshots |" > builds_content.tmp
+            echo "|------|--------|-------------|" >> builds_content.tmp
+            
+            # List most recent 10 builds
+            find "$ARCHIVE_DIR" -maxdepth 1 -mindepth 1 -type d | sort -r | head -n 10 | while read build_dir; do
+              build_date=$(basename "$build_dir" | cut -d'-' -f1)
+              build_id=$(basename "$build_dir" | cut -d'-' -f2)
+              if [ -d "$build_dir/success" ]; then
+                status="✅ Success"
+              else
+                status="❌ Failed"
               fi
+              echo "| $build_date | $status | [View](archive/$(basename "$build_dir")/) |" >> builds_content.tmp
             done
+            
+            # Update recent builds in gallery index
+            sed -i "s/<!-- RECENT_BUILDS -->.*$/<!-- RECENT_BUILDS -->\n$(cat builds_content.tmp)/g" docs/gallery/index.md
           fi
-
-          # Update main page gallery
-          sed -i "s|<!-- LATEST_SCREENSHOTS -->|$(cat main_gallery.tmp)|g" docs/index.md
           
           # Cleanup
-          rm screenshots_content.tmp main_gallery.tmp
+          rm -f screenshots_content.tmp gallery_content.tmp builds_content.tmp
 
       # Now fail the workflow if E2E tests failed
       - name: Check E2E test results
@@ -284,25 +324,13 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-artifacts
+          name: test-artifacts-${{ github.run_id }}
           path: |
             coverage/
-            docs/screenshots/e2e-debug/**/*.png
-            docs/screenshots/latest/**/*.png
-            tests/logs/
+            docs/screenshots/**/*.png
             docs/screenshots.md
-          retention-days: 14
-          if-no-files-found: ignore
-
-      - name: Upload screenshots separately
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: screenshots-${{ github.run_id }}
-          path: |
-            docs/screenshots/e2e-debug/**/*.png
-            docs/screenshots/latest/**/*.png
-          retention-days: 30
+            tests/logs/
+          retention-days: 30  # Extended retention for better debugging
           if-no-files-found: ignore
 
       - name: Package Extension
