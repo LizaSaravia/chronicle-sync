@@ -1,0 +1,16 @@
+# Chronicle Sync Screenshots
+
+Latest screenshots from our E2E tests, automatically updated with each successful build.
+
+## Latest Build Screenshots
+
+<!-- SCREENSHOTS_START -->
+<!-- Screenshots will be automatically inserted here -->
+<!-- SCREENSHOTS_END -->
+
+## Dashboards
+
+- [Production Dashboard](https://chronicle-sync.pages.dev)
+- [Staging Dashboard](https://staging.chronicle-sync.pages.dev)
+
+*Last updated: <!-- DATE -->

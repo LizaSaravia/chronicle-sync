@@ -10,11 +10,12 @@ Chronicle Sync provides secure, real-time synchronization of your browsing data 
 
 ## Latest Screenshots
 
-Screenshots are automatically generated during E2E tests and available in our [latest successful CI run](https://github.com/posix4e/chronicle-sync/actions/workflows/ci.yml?query=branch%3Amain+is%3Asuccess).
+Screenshots are automatically generated during E2E tests and published to our [Screenshots Gallery](https://posix4e.github.io/chronicle-sync/screenshots). The gallery is automatically updated with each successful build on the main branch.
 
-📸 **View Screenshots:**
-1. Visit the [latest successful CI run](https://github.com/posix4e/chronicle-sync/actions/workflows/ci.yml?query=branch%3Amain+is%3Asuccess)
-2. Download the "test-artifacts" zip file from Artifacts section
+📸 **Quick Links:**
+- [Screenshots Gallery](https://posix4e.github.io/chronicle-sync/screenshots)
+- [Production Dashboard](https://chronicle-sync.pages.dev)
+- [Staging Dashboard](https://staging.chronicle-sync.pages.dev)
 
 [View Latest Release](https://github.com/posix4e/chronicle-sync/releases/latest) | [Documentation](/docs)
 ## Features

@@ -168,6 +168,54 @@ jobs:
           zip -r ../chronicle-sync.zip *
           popd
 
+      - name: Process Screenshots for Documentation
+        if: success() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+        run: |
+          # Create screenshots directory in docs if it doesn't exist
+          mkdir -p docs/screenshots/latest
+
+          # Copy latest screenshots
+          if [ -d "docs/screenshots/e2e-debug" ]; then
+            cp -r docs/screenshots/e2e-debug/* docs/screenshots/latest/
+          fi
+
+          # Generate screenshots page
+          cp docs/screenshots.md.template docs/screenshots.md
+          
+          # Insert screenshots into markdown
+          echo "" > screenshots_content.tmp
+          for img in docs/screenshots/latest/*.png; do
+            if [ -f "$img" ]; then
+              filename=$(basename "$img")
+              echo "### ${filename%.png}" >> screenshots_content.tmp
+              echo "![${filename%.png}](screenshots/latest/$filename)" >> screenshots_content.tmp
+              echo "" >> screenshots_content.tmp
+            fi
+          done
+          
+          # Replace placeholders in the template
+          sed -i "s/<!-- SCREENSHOTS_START -->.*<!-- SCREENSHOTS_END -->/<!-- SCREENSHOTS_START -->\n$(cat screenshots_content.tmp)\n<!-- SCREENSHOTS_END -->/g" docs/screenshots.md
+          sed -i "s/<!-- DATE -->/$(date -u '+%Y-%m-%d %H:%M UTC')/g" docs/screenshots.md
+
+          # Create a compact gallery for the main page (only first 4 screenshots)
+          count=0
+          echo "" > main_gallery.tmp
+          for img in docs/screenshots/latest/*.png; do
+            if [ -f "$img" ] && [ $count -lt 4 ]; then
+              filename=$(basename "$img")
+              echo "<a href=\"screenshots.html#${filename%.png}\" class=\"screenshot-preview\">" >> main_gallery.tmp
+              echo "  <img src=\"screenshots/latest/$filename\" alt=\"${filename%.png}\" />" >> main_gallery.tmp
+              echo "</a>" >> main_gallery.tmp
+              count=$((count + 1))
+            fi
+          done
+
+          # Update main page gallery
+          sed -i "s|<!-- LATEST_SCREENSHOTS -->|$(cat main_gallery.tmp)|g" docs/index.md
+          
+          # Cleanup
+          rm screenshots_content.tmp main_gallery.tmp
+
       - name: Configure GitHub Pages
         if: success() && github.ref == 'refs/heads/main'
         uses: actions/configure-pages@v4

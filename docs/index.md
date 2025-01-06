@@ -2,6 +2,19 @@
 
 Welcome to the Chronicle Sync documentation. This guide covers everything from user guides to technical details.
 
+## Live Dashboards & Screenshots
+
+🎯 **Live Environments:**
+- 🌐 [Production Dashboard](https://chronicle-sync.pages.dev) - Live production environment
+- 🧪 [Staging Dashboard](https://staging.chronicle-sync.pages.dev) - Preview upcoming features
+
+📸 **Latest Screenshots:**
+<div class="screenshot-gallery">
+<!-- LATEST_SCREENSHOTS -->
+</div>
+
+[View Full Screenshot Gallery](screenshots.html) | [View Test Results](test-results.html)
+
 ## Quick Links
 
 - 📱 [Installation Guide](#installation)
@@ -9,8 +22,6 @@ Welcome to the Chronicle Sync documentation. This guide covers everything from u
 - 🤝 [Contributing Guidelines](../CONTRIBUTING.md)
 - 🔒 [Security Model](security.md)
 - 📊 [Dashboard Guide](dashboard.md)
-- 🌐 [Production Dashboard](https://dashboard.chroniclesync.xyz)
-- 🧪 [Staging Dashboard](https://dashboard-staging.chroniclesync.xyz)
 
 ## Installation
 

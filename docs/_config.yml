@@ -5,3 +5,7 @@ theme: jekyll-theme-minimal
 # Show screenshots at full size
 kramdown:
   parse_block_html: true
+
+# Custom styles
+custom_css:
+  - /assets/css/screenshots.css
