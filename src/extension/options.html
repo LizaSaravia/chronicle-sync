@@ -110,7 +110,22 @@
         <select id="environment" name="environment" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px;">
           <option value="production">Production</option>
           <option value="staging">Staging</option>
+          <option value="custom">Custom</option>
         </select>
+      </div>
+
+      <div class="form-group" id="custom-api-group" style="display: none;">
+        <label for="custom-api-url">Custom API URL</label>
+        <input 
+          type="url" 
+          id="custom-api-url" 
+          name="custom-api-url" 
+          placeholder="https://your-api-server.com"
+          pattern="https?://.*"
+        >
+        <small style="display: block; margin-top: 4px; color: #666;">
+          Must be a valid HTTP/HTTPS URL (e.g., https://api.example.com)
+        </small>
       </div>
 
       <button type="submit" id="setup-btn">Set Up Chronicle Sync</button>

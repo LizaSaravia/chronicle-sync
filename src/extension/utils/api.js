@@ -4,8 +4,8 @@ const API_BASE = {
 };
 
 export class ApiClient {
-  constructor(environment = process.env.NODE_ENV === 'development' ? 'staging' : 'production') {
-    this.baseUrl = API_BASE[environment];
+  constructor(environment = process.env.NODE_ENV === 'development' ? 'staging' : 'production', customApiUrl = null) {
+    this.baseUrl = environment === 'custom' ? customApiUrl : API_BASE[environment];
     this.setupOfflineDetection();
   }
 

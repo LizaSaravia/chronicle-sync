@@ -9,6 +9,8 @@ Welcome to the Chronicle Sync documentation. This guide covers everything from u
 - 🤝 [Contributing Guidelines](../CONTRIBUTING.md)
 - 🔒 [Security Model](security.md)
 - 📊 [Dashboard Guide](dashboard.md)
+- 🌐 [Production Dashboard](https://dashboard.chroniclesync.xyz)
+- 🧪 [Staging Dashboard](https://dashboard-staging.chroniclesync.xyz)
 
 ## Installation
 

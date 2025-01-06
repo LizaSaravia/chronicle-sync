@@ -3,6 +3,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   const setupBtn = document.getElementById('setup-btn');
   const errorDiv = document.getElementById('error');
   const successDiv = document.getElementById('success');
+  const environment = document.getElementById('environment');
+  const customApiGroup = document.getElementById('custom-api-group');
+  const customApiUrl = document.getElementById('custom-api-url');
+
+  // Handle environment change
+  environment.addEventListener('change', () => {
+    if (environment.value === 'custom') {
+      customApiGroup.style.display = 'block';
+      customApiUrl.required = true;
+    } else {
+      customApiGroup.style.display = 'none';
+      customApiUrl.required = false;
+    }
+  });
 
   function showError(message) {
     errorDiv.textContent = message;
@@ -38,9 +52,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     const password = document.getElementById('password').value;
     const confirmPassword = document.getElementById('confirm-password').value;
     const environment = document.getElementById('environment').value;
+    const customApiUrl = document.getElementById('custom-api-url').value;
 
     if (!password || password !== confirmPassword) {
       showError('Passwords do not match or are empty');
+      return;
+    }
+
+    if (environment === 'custom' && !customApiUrl) {
+      showError('Custom API URL is required when using custom environment');
+      return;
+    }
+
+    if (environment === 'custom' && !customApiUrl.match(/^https?:\/\/.+/)) {
+      showError('Please enter a valid HTTP/HTTPS URL');
       return;
     }
 
@@ -48,13 +73,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       setupBtn.disabled = true;
       errorDiv.style.display = 'none';
       
-      // Save environment setting
-      await chrome.storage.local.set({ environment });
+      // Save environment and API settings
+      await chrome.storage.local.set({ 
+        environment,
+        customApiUrl: environment === 'custom' ? customApiUrl : null
+      });
 
       const response = await chrome.runtime.sendMessage({
         type: 'INITIALIZE',
         password,
-        environment
+        environment,
+        customApiUrl: environment === 'custom' ? customApiUrl : null
       });
 
       if (response.success) {
