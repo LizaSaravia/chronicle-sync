@@ -8,12 +8,7 @@ A secure, cross-platform browser extension for syncing your browsing data across
 
 Chronicle Sync provides secure, real-time synchronization of your browsing data across multiple devices and browsers. Built on Cloudflare's infrastructure (R2, D1, and KV store), it ensures both performance and security.
 
-## Latest Screenshots
-
-Screenshots are automatically generated during E2E tests and published to our [Screenshots Gallery](https://posix4e.github.io/chronicle-sync/screenshots). The gallery is automatically updated with each successful build on the main branch.
-
 📸 **Quick Links:**
-- [Screenshots Gallery](https://posix4e.github.io/chronicle-sync/screenshots)
 - [Production Dashboard](https://chronicle-sync.pages.dev)
 - [Staging Dashboard](https://staging.chronicle-sync.pages.dev)
 
