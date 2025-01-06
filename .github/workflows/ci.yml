@@ -60,6 +60,18 @@ jobs:
         env:
           CI: true
 
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-artifacts
+          path: |
+            coverage/
+            docs/screenshots/e2e-debug/**/*.png
+            tests/logs/
+          retention-days: 14
+          if-no-files-found: ignore
+
       - name: Build extension and dashboard
         if: success()
         run: |
@@ -128,210 +140,26 @@ jobs:
           # Install Playwright and its dependencies
           pnpm exec playwright install --with-deps chromium
 
-      - name: Setup test directories
-        run: |
-          # Create all required directories upfront
-          mkdir -p docs/screenshots/e2e-debug/{success,failure}
-          mkdir -p docs/screenshots/latest/{success,failure}
-          mkdir -p docs/gallery/{latest,archive}
-          touch docs/screenshots/e2e-debug/.keep
-
       - name: Run E2E tests
         id: e2e_tests
+        if: success()
         continue-on-error: true
         run: |
-          # Run tests on SauceLabs and capture the exit code
+          mkdir -p docs/screenshots/e2e-debug
+          
+          # Run tests on SauceLabs
           SAUCE_USERNAME=${{ secrets.SAUCE_USERNAME }} \
           SAUCE_ACCESS_KEY=${{ secrets.SAUCE_ACCESS_KEY }} \
           NODE_ENV=test pnpm run build && pnpm exec playwright test --config=playwright.sauce.config.ts
-          TEST_EXIT_CODE=$?
-
-          # Create directories again just in case
-          mkdir -p docs/screenshots/e2e-debug/{success,failure}
-
-          # Move screenshots to appropriate directory based on test result
-          # First, check if any screenshots were generated
-          if find docs/screenshots/e2e-debug -maxdepth 1 -name "*.png" -print -quit 2>/dev/null | grep -q .; then
-            if [ $TEST_EXIT_CODE -eq 0 ]; then
-              mv docs/screenshots/e2e-debug/*.png docs/screenshots/e2e-debug/success/ 2>/dev/null || true
-            else
-              mv docs/screenshots/e2e-debug/*.png docs/screenshots/e2e-debug/failure/ 2>/dev/null || true
-            fi
-          else
-            echo "No screenshots were generated during the test run"
-          fi
-
-          exit $TEST_EXIT_CODE
         env:
           CI: true
-          SCREENSHOTS_FOR_DOCS: true
+          SCREENSHOTS_FOR_DOCS: ${{ github.event_name == 'pull_request' }}
           SCREENSHOT_DIR: docs/screenshots/e2e-debug
 
-      # Process screenshots regardless of test outcome
-      - name: Process Screenshots
-        if: always()
-        run: |
-          # Set up variables
-          GALLERY_DIR="docs/gallery"
-          ARCHIVE_DIR="$GALLERY_DIR/archive"
-          LATEST_DIR="$GALLERY_DIR/latest"
-          RUN_DATE=$(date -u '+%Y-%m-%d')
-          RUN_ID="${{ github.run_id }}"
-          
-          # Ensure directories exist
-          mkdir -p "$LATEST_DIR" "$ARCHIVE_DIR/$RUN_DATE-$RUN_ID"
-          mkdir -p docs/screenshots/latest/{success,failure}
-
-          # Generate screenshots page
-          cp docs/screenshots.md.template docs/screenshots.md
-          
-          # Initialize content files
-          echo "" > screenshots_content.tmp
-
-          # Function to safely process screenshots
-          process_screenshots() {
-            local status=$1
-            local emoji=$2
-            local title=$3
-            local src_dir="docs/screenshots/e2e-debug/$status"
-            local dest_dir="docs/screenshots/latest/$status"
-            
-            # Check if directory exists and contains PNG files
-            if find "$src_dir" -maxdepth 1 -name "*.png" -print -quit 2>/dev/null | grep -q .; then
-              echo "## $emoji $title" >> screenshots_content.tmp
-              echo "" >> screenshots_content.tmp
-              
-              if [ "$status" = "failure" ]; then
-                echo "> These screenshots are from failed test runs and may help identify UI issues." >> screenshots_content.tmp
-                echo "" >> screenshots_content.tmp
-              fi
-              
-              # Ensure destination directory exists
-              mkdir -p "$dest_dir"
-              
-              # Copy files first
-              find "$src_dir" -maxdepth 1 -name "*.png" -exec cp {} "$dest_dir/" \;
-              
-              # Then process them for markdown
-              find "$dest_dir" -maxdepth 1 -name "*.png" | while read img; do
-                filename=$(basename "$img")
-                echo "### ${filename%.png}" >> screenshots_content.tmp
-                echo "![${filename%.png}](screenshots/latest/$status/$filename)" >> screenshots_content.tmp
-                echo "" >> screenshots_content.tmp
-              done
-              
-              return 0
-            fi
-            return 1
-          }
-
-          # Process screenshots for both success and failure cases
-          success_found=false
-          failure_found=false
-          
-          if process_screenshots "success" "✅" "Successful Test Screenshots"; then
-            success_found=true
-          fi
-          
-          if process_screenshots "failure" "❌" "Failed Test Screenshots"; then
-            failure_found=true
-          fi
-
-          # If no screenshots exist at all
-          if [ ! -s screenshots_content.tmp ]; then
-            echo "### No Screenshots Available" >> screenshots_content.tmp
-            echo "No screenshots have been generated yet. They will appear here after the next test run." >> screenshots_content.tmp
-            echo "" >> screenshots_content.tmp
-          fi
-
-          # Update the screenshots page
-          sed -i "s/<!-- SCREENSHOTS_START -->.*<!-- SCREENSHOTS_END -->/<!-- SCREENSHOTS_START -->\n$(cat screenshots_content.tmp)\n<!-- SCREENSHOTS_END -->/g" docs/screenshots.md
-          sed -i "s/<!-- DATE -->/$(date -u '+%Y-%m-%d %H:%M UTC')/g" docs/screenshots.md
-
-          # Copy screenshots to gallery
-          if [ "$success_found" = true ] || [ "$failure_found" = true ]; then
-            # Archive current screenshots
-            ARCHIVE_PATH="$ARCHIVE_DIR/$RUN_DATE-$RUN_ID"
-            cp -r docs/screenshots/latest/* "$ARCHIVE_PATH/"
-            
-            # Update latest screenshots
-            rm -rf "$LATEST_DIR"/*
-            cp -r docs/screenshots/latest/* "$LATEST_DIR/"
-            
-            # Generate gallery index content
-            echo "## Latest Screenshots ($(date -u '+%Y-%m-%d %H:%M UTC'))" > gallery_content.tmp
-            echo "" >> gallery_content.tmp
-            echo "<div class=\"screenshot-grid\">" >> gallery_content.tmp
-            
-            # Add successful screenshots first
-            if [ "$success_found" = true ]; then
-              find "$LATEST_DIR/success" -name "*.png" | sort | head -n 4 | while read img; do
-                filename=$(basename "$img")
-                echo "<div class=\"screenshot-item success\">" >> gallery_content.tmp
-                echo "  <img src=\"latest/success/$filename\" alt=\"${filename%.png}\" />" >> gallery_content.tmp
-                echo "  <span class=\"status\">✅ Success</span>" >> gallery_content.tmp
-                echo "</div>" >> gallery_content.tmp
-              done
-            fi
-            
-            # Add failed screenshots if we have space
-            if [ "$failure_found" = true ]; then
-              find "$LATEST_DIR/failure" -name "*.png" | sort | head -n 2 | while read img; do
-                filename=$(basename "$img")
-                echo "<div class=\"screenshot-item failure\">" >> gallery_content.tmp
-                echo "  <img src=\"latest/failure/$filename\" alt=\"${filename%.png}\" />" >> gallery_content.tmp
-                echo "  <span class=\"status\">❌ Failed</span>" >> gallery_content.tmp
-                echo "</div>" >> gallery_content.tmp
-              done
-            fi
-            
-            echo "</div>" >> gallery_content.tmp
-            echo "" >> gallery_content.tmp
-            echo "[View Full Gallery](gallery/)" >> gallery_content.tmp
-            
-            # Update gallery index
-            sed -i "s/<!-- LATEST_SCREENSHOTS -->.*<!-- RECENT_BUILDS -->/<!-- LATEST_SCREENSHOTS -->\n$(cat gallery_content.tmp)\n\n## Recent Builds\n\n<!-- RECENT_BUILDS -->/g" docs/gallery/index.md
-            
-            # Update recent builds list
-            echo "| Date | Status | Screenshots |" > builds_content.tmp
-            echo "|------|--------|-------------|" >> builds_content.tmp
-            
-            # List most recent 10 builds
-            find "$ARCHIVE_DIR" -maxdepth 1 -mindepth 1 -type d | sort -r | head -n 10 | while read build_dir; do
-              build_date=$(basename "$build_dir" | cut -d'-' -f1)
-              build_id=$(basename "$build_dir" | cut -d'-' -f2)
-              if [ -d "$build_dir/success" ]; then
-                status="✅ Success"
-              else
-                status="❌ Failed"
-              fi
-              echo "| $build_date | $status | [View](archive/$(basename "$build_dir")/) |" >> builds_content.tmp
-            done
-            
-            # Update recent builds in gallery index
-            sed -i "s/<!-- RECENT_BUILDS -->.*$/<!-- RECENT_BUILDS -->\n$(cat builds_content.tmp)/g" docs/gallery/index.md
-          fi
-          
-          # Cleanup
-          rm -f screenshots_content.tmp gallery_content.tmp builds_content.tmp
-
-      # Now fail the workflow if E2E tests failed
+      # Fail the workflow if E2E tests failed
       - name: Check E2E test results
         if: steps.e2e_tests.outcome == 'failure'
         run: exit 1
-
-      - name: Upload test artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-artifacts-${{ github.run_id }}
-          path: |
-            coverage/
-            docs/screenshots/**/*.png
-            docs/screenshots.md
-            tests/logs/
-          retention-days: 30  # Extended retention for better debugging
-          if-no-files-found: ignore
 
       - name: Package Extension
         if: success() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
