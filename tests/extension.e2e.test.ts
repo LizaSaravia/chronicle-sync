@@ -36,8 +36,14 @@ test.describe('Extension End-to-End Test', () => {
       headless: true,
     });
 
-    // Use a fixed extension ID for testing
-    extensionId = 'test-extension-id';
+    // Get the real extension ID
+    const backgroundPages = context.backgroundPages();
+    if (backgroundPages.length === 0) {
+      throw new Error('No extension background page found');
+    }
+    const backgroundPage = backgroundPages[0];
+    const url = backgroundPage.url();
+    extensionId = url.match(/chrome-extension:\/\/([^/]+)/)[1];
   });
 
   test.afterAll(async () => {

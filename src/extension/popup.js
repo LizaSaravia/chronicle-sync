@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const setupBtn = document.getElementById('setup-btn');
   const syncBtn = document.getElementById('sync-btn');
   const dashboardBtn = document.getElementById('dashboard-btn');
+  const optionsBtn = document.getElementById('options-btn');
   const syncLoading = document.getElementById('sync-loading');
   const historyError = document.getElementById('history-error');
   const historyList = document.getElementById('history-list');
@@ -18,7 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Check if extension is initialized
   try {
-    const storage = await chrome.storage.local.get(['initialized', 'environment', 'customApiUrl']);
+    const storage = await chrome.storage.local.get(['initialized', 'environment', 'customApiUrl', 'groupId']);
     if (storage.initialized) {
       notSetupDiv.style.display = 'none';
       historyDiv.style.display = 'block';
@@ -32,10 +33,20 @@ document.addEventListener('DOMContentLoaded', async () => {
           dashboardUrl = storage.customApiUrl.replace(/\/api\/?$/, '');
         } else {
           dashboardUrl = storage.environment === 'staging' 
-            ? 'https://dashboard-staging.chroniclesync.xyz'
+            ? 'https://preview.chronicle-sync.pages.dev'
             : 'https://dashboard.chroniclesync.xyz';
         }
+        // Add group ID to URL if available
+        if (storage.groupId) {
+          dashboardUrl += `?groupId=${encodeURIComponent(storage.groupId)}`;
+        }
         chrome.tabs.create({ url: dashboardUrl });
+      });
+
+      // Set up options button click handler
+      optionsBtn.addEventListener('click', () => {
+        chrome.runtime.openOptionsPage();
+        window.close();
       });
     } else {
       notSetupDiv.style.display = 'block';

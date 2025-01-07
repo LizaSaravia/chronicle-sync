@@ -81,8 +81,16 @@ chronicle-sync/
 2. **E2E Tests**
    - Use Playwright for browser automation
    - Test complete user flows
-   - Run with `npm run test:e2e`
-   - Run with `npm run test:e2e:dashboard` for dashboard tests
+   - Run tests:
+     * `pnpm run test:e2e` - Run tests with Xvfb (default)
+     * `pnpm run test:e2e:sauce` - Run tests on SauceLabs
+     * `pnpm run test:e2e:dashboard` - Run dashboard tests
+   - Test configurations:
+     * `playwright.ci.config.ts` - Local/CI config with Xvfb
+     * `playwright.sauce.config.ts` - SauceLabs config
+     * Both extend base config from `tests/common/test-config.ts`
+   - Uses Xvfb for headless testing in CI when SauceLabs is not available
+   - Requires Xvfb and xauth for local headless testing
 
 3. **Screenshots**
    - Generated during E2E tests
@@ -112,7 +120,9 @@ chronicle-sync/
    - Installs Playwright browsers
    - Runs linting and unit tests
    - Builds extension, dashboard, and worker
-   - Runs E2E tests with screenshot capture
+   - Runs E2E tests with screenshot capture:
+     * Uses SauceLabs when credentials are available
+     * Falls back to Xvfb for headless testing
    - Uploads test and build artifacts
 
 3. **Releases**:

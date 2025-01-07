@@ -12,7 +12,8 @@ export default {
     path: path.resolve(__dirname, 'dist/worker'),
     library: {
       type: 'module'
-    }
+    },
+    clean: false
   },
   experiments: {
     outputModule: true

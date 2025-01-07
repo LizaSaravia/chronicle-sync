@@ -149,9 +149,54 @@
           Copied to clipboard!
         </div>
         <p class="dashboard-link">
-          Visit the <a href="https://dashboard.chroniclesync.xyz" target="_blank">Chronicle Sync Dashboard</a>
+          Visit the <a id="dashboard-link" href="https://dashboard.chroniclesync.xyz" target="_blank">Chronicle Sync Dashboard</a>
           to view your browsing history.
         </p>
+      </div>
+
+      <div class="info-box">
+        <h2>Server Settings</h2>
+        <form id="settings-form">
+          <div class="form-group">
+            <label for="settings-environment">Environment</label>
+            <select id="settings-environment" name="environment" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px;">
+              <option value="production">Production</option>
+              <option value="staging">Staging</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="settings-custom-api-group" style="display: none;">
+            <label for="settings-custom-api-url">Custom API URL</label>
+            <input 
+              type="url" 
+              id="settings-custom-api-url" 
+              name="custom-api-url" 
+              placeholder="https://your-api-server.com"
+              pattern="https?://.*"
+            >
+            <small style="display: block; margin-top: 4px; color: #666;">
+              Must be a valid HTTP/HTTPS URL (e.g., https://api.example.com)
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label for="settings-error-reporting">
+              <input 
+                type="checkbox" 
+                id="settings-error-reporting" 
+                name="error-reporting"
+                style="width: auto; margin-right: 8px;"
+              >
+              Enable Error Reporting
+            </label>
+            <small style="display: block; margin-top: 4px; color: #666;">
+              When enabled, extension errors will be reported to help improve the service. No personal data is included.
+            </small>
+          </div>
+
+          <button type="submit" id="save-settings-btn">Save Settings</button>
+        </form>
       </div>
     </div>
     
@@ -198,6 +243,22 @@
         >
         <small style="display: block; margin-top: 4px; color: #666;">
           Must be a valid HTTP/HTTPS URL (e.g., https://api.example.com)
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label for="error-reporting">
+          <input 
+            type="checkbox" 
+            id="error-reporting" 
+            name="error-reporting"
+            style="width: auto; margin-right: 8px;"
+          >
+          Enable Error Reporting
+        </label>
+        <small style="display: block; margin-top: 4px; color: #666;">
+          When enabled, extension errors will be reported to help improve the service. No personal data is included.
+          Automatically enabled in staging/beta environments.
         </small>
       </div>
 

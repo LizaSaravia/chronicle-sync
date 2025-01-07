@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-import worker from '../../worker/worker.js';
+let worker;
+import {
+  createMockEnv,
+  createMockRequest
+} from '../../common/test-helpers';
 
 // Mock crypto.randomUUID
 Object.defineProperty(global, 'crypto', {
@@ -11,50 +15,28 @@ Object.defineProperty(global, 'crypto', {
 
 describe('Worker', () => {
   let mockEnv;
-  let mockDB;
-  let mockKV;
-  let mockBucket;
   let mockRequest;
 
-  beforeEach(() => {
-    // Mock D1 database
-    mockDB = {
-      exec: vi.fn().mockResolvedValue(undefined),
-      prepare: vi.fn().mockReturnValue({
-        bind: vi.fn().mockReturnThis(),
-        first: vi.fn(),
-        run: vi.fn()
-      })
-    };
+  beforeEach(async () => {
+    // Reset worker module state
+    vi.resetModules();
+    worker = (await import('../../../worker/worker.js')).default;
 
-    // Mock KV storage
-    mockKV = {
-      get: vi.fn(),
-      put: vi.fn(),
-      delete: vi.fn()
-    };
-
-    // Mock R2 bucket
-    mockBucket = {
-      get: vi.fn(),
-      put: vi.fn(),
-      delete: vi.fn(),
-      list: vi.fn()
-    };
-
-    // Mock environment
-    mockEnv = {
-      DB: mockDB,
-      SYNC_KV: mockKV,
-      SYNC_BUCKET: mockBucket
-    };
-
-    // Mock request
-    mockRequest = {
-      method: 'POST',
-      url: 'http://example.com/api/sync',
-      json: vi.fn()
-    };
+    mockEnv = createMockEnv();
+    mockRequest = createMockRequest();
+    
+    // Set up default successful responses
+    mockEnv.DB.prepare().first.mockResolvedValue({ id: 'test-group' });
+    mockEnv.SYNC_KV.get.mockResolvedValue('test');
+    mockEnv.SYNC_BUCKET.get.mockImplementation(async () => ({
+      text: async () => JSON.stringify([{ url: 'https://example.com', title: 'Example' }])
+    }));
+    mockEnv.SYNC_BUCKET.list.mockResolvedValue({
+      objects: [
+        { key: 'test-group/1234567890' },
+        { key: 'test-group/1234567891' }
+      ]
+    });
   });
 
   afterEach(() => {
@@ -72,10 +54,8 @@ describe('Worker', () => {
       };
 
       // Mock request data
+      mockRequest.url = 'http://example.com/api/sync';
       mockRequest.json.mockResolvedValue(syncData);
-
-      // Mock group exists
-      mockDB.prepare().first.mockResolvedValue({ id: 'test-group' });
 
       // Make the request
       const response = await worker.fetch(mockRequest, mockEnv);
@@ -85,28 +65,28 @@ describe('Worker', () => {
       expect(result).toEqual({ success: true });
 
       // Verify data was stored in R2
-      expect(mockBucket.put).toHaveBeenCalledWith(
+      expect(mockEnv.SYNC_BUCKET.put).toHaveBeenCalledWith(
         `test-group/${timestamp}.json`,
         JSON.stringify(syncData.data)
       );
 
       // Verify latest timestamp was stored in KV
-      expect(mockKV.put).toHaveBeenCalledWith(
+      expect(mockEnv.SYNC_KV.put).toHaveBeenCalledWith(
         'test-group:latest',
         timestamp.toString()
       );
 
       // Verify device sync time was updated
-      expect(mockDB.prepare).toHaveBeenCalledWith(
+      expect(mockEnv.DB.prepare).toHaveBeenCalledWith(
         'INSERT OR REPLACE INTO devices (id, sync_group_id, last_sync) VALUES (?, ?, ?)'
       );
-      expect(mockDB.prepare().bind).toHaveBeenCalledWith('test-device', 'test-group', timestamp);
+      expect(mockEnv.DB.prepare().bind).toHaveBeenCalledWith('test-device', 'test-group', timestamp);
 
       // Verify group last_updated was updated
-      expect(mockDB.prepare).toHaveBeenCalledWith(
+      expect(mockEnv.DB.prepare).toHaveBeenCalledWith(
         'UPDATE sync_groups SET last_updated = ? WHERE id = ?'
       );
-      expect(mockDB.prepare().bind).toHaveBeenCalledWith(timestamp, 'test-group');
+      expect(mockEnv.DB.prepare().bind).toHaveBeenCalledWith(timestamp, 'test-group');
     });
 
     it('should return 404 if group not found', async () => {
@@ -118,10 +98,11 @@ describe('Worker', () => {
       };
 
       // Mock request data
+      mockRequest.url = 'http://example.com/api/sync';
       mockRequest.json.mockResolvedValue(syncData);
 
       // Mock group does not exist
-      mockDB.prepare().first.mockResolvedValue(null);
+      mockEnv.DB.prepare().first.mockResolvedValue(null);
 
       // Make the request
       const response = await worker.fetch(mockRequest, mockEnv);
@@ -132,8 +113,8 @@ describe('Worker', () => {
       expect(result).toEqual({ error: 'Group not found' });
 
       // Verify no data was stored
-      expect(mockBucket.put).not.toHaveBeenCalled();
-      expect(mockKV.put).not.toHaveBeenCalled();
+      expect(mockEnv.SYNC_BUCKET.put).not.toHaveBeenCalled();
+      expect(mockEnv.SYNC_KV.put).not.toHaveBeenCalled();
     });
   });
 
@@ -154,16 +135,16 @@ describe('Worker', () => {
       expect(result).toEqual({ groupId: expectedGroupId });
 
       // Verify group was created
-      expect(mockDB.prepare).toHaveBeenCalledWith(
+      expect(mockEnv.DB.prepare).toHaveBeenCalledWith(
         'INSERT INTO sync_groups (id, created_at, last_updated) VALUES (?, ?, ?)'
       );
-      expect(mockDB.prepare().bind).toHaveBeenCalledWith(expectedGroupId, expect.any(Number), expect.any(Number));
+      expect(mockEnv.DB.prepare().bind).toHaveBeenCalledWith(expectedGroupId, expect.any(Number), expect.any(Number));
 
       // Verify device was added to group
-      expect(mockDB.prepare).toHaveBeenCalledWith(
+      expect(mockEnv.DB.prepare).toHaveBeenCalledWith(
         'INSERT INTO devices (id, sync_group_id, last_sync) VALUES (?, ?, ?)'
       );
-      expect(mockDB.prepare().bind).toHaveBeenCalledWith(deviceId, expectedGroupId, expect.any(Number));
+      expect(mockEnv.DB.prepare().bind).toHaveBeenCalledWith(deviceId, expectedGroupId, expect.any(Number));
     });
   });
 
@@ -179,23 +160,23 @@ describe('Worker', () => {
       mockRequest.url = `http://example.com/api/get-updates?groupId=${groupId}&deviceId=${deviceId}&since=${since}`;
 
       // Mock device exists
-      mockDB.prepare().first.mockResolvedValue({ id: deviceId });
+      mockEnv.DB.prepare().first.mockResolvedValue({ id: deviceId });
 
       // Mock latest timestamp
-      mockKV.get.mockResolvedValue(latestTimestamp);
+      mockEnv.SYNC_KV.get.mockResolvedValue(latestTimestamp);
 
       // Mock updates in R2
       const updates = [
         { url: 'https://example1.com', title: 'Example 1' },
         { url: 'https://example2.com', title: 'Example 2' }
       ];
-      mockBucket.list.mockResolvedValue({
+      mockEnv.SYNC_BUCKET.list.mockResolvedValue({
         objects: [
           { key: `${groupId}/${parseInt(latestTimestamp) - 500}` },
           { key: `${groupId}/${latestTimestamp}` }
         ]
       });
-      mockBucket.get.mockImplementation(async () => ({
+      mockEnv.SYNC_BUCKET.get.mockImplementation(async () => ({
         text: async () => JSON.stringify(updates)
       }));
 
@@ -207,7 +188,7 @@ describe('Worker', () => {
       expect(result).toEqual({ updates: [updates, updates] });
 
       // Verify correct objects were fetched
-      expect(mockBucket.list).toHaveBeenCalledWith({
+      expect(mockEnv.SYNC_BUCKET.list).toHaveBeenCalledWith({
         prefix: `${groupId}/`,
         cursor: `${groupId}/${since}`
       });
@@ -223,7 +204,7 @@ describe('Worker', () => {
       mockRequest.url = `http://example.com/api/get-updates?groupId=${groupId}&deviceId=${deviceId}&since=${since}`;
 
       // Mock device does not exist
-      mockDB.prepare().first.mockResolvedValue(null);
+      mockEnv.DB.prepare().first.mockResolvedValue(null);
 
       // Make the request
       const response = await worker.fetch(mockRequest, mockEnv);
@@ -244,10 +225,10 @@ describe('Worker', () => {
       mockRequest.url = `http://example.com/api/get-updates?groupId=${groupId}&deviceId=${deviceId}&since=${since}`;
 
       // Mock device exists
-      mockDB.prepare().first.mockResolvedValue({ id: deviceId });
+      mockEnv.DB.prepare().first.mockResolvedValue({ id: deviceId });
 
       // Mock no new updates
-      mockKV.get.mockResolvedValue(since.toString());
+      mockEnv.SYNC_KV.get.mockResolvedValue(since.toString());
 
       // Make the request
       const response = await worker.fetch(mockRequest, mockEnv);
@@ -257,7 +238,7 @@ describe('Worker', () => {
       expect(result).toEqual({ updates: [] });
 
       // Verify no objects were fetched
-      expect(mockBucket.list).not.toHaveBeenCalled();
+      expect(mockEnv.SYNC_BUCKET.list).not.toHaveBeenCalled();
     });
   });
 
@@ -268,9 +249,9 @@ describe('Worker', () => {
       mockRequest.url = 'http://example.com/health';
 
       // Mock successful service checks
-      mockDB.prepare().first.mockResolvedValue({ '1': 1 });
-      mockKV.get.mockResolvedValue('test');
-      mockBucket.get.mockImplementation(async () => ({
+      mockEnv.DB.prepare().first.mockResolvedValue({ '1': 1 });
+      mockEnv.SYNC_KV.get.mockResolvedValue('test');
+      mockEnv.SYNC_BUCKET.get.mockImplementation(async () => ({
         text: async () => 'test'
       }));
 
@@ -289,9 +270,9 @@ describe('Worker', () => {
       });
 
       // Verify service checks
-      expect(mockDB.prepare().first).toHaveBeenCalled();
-      expect(mockKV.get).toHaveBeenCalledWith('health-check-key');
-      expect(mockBucket.get).toHaveBeenCalledWith('health-check.txt');
+      expect(mockEnv.DB.prepare().first).toHaveBeenCalled();
+      expect(mockEnv.SYNC_KV.get).toHaveBeenCalledWith('health-check-key');
+      expect(mockEnv.SYNC_BUCKET.get).toHaveBeenCalledWith('health-check.txt');
     });
 
     it('should return unhealthy when a service fails', async () => {
@@ -300,7 +281,7 @@ describe('Worker', () => {
       mockRequest.url = 'http://example.com/health';
 
       // Mock D1 failure
-      mockDB.prepare().first.mockResolvedValue(null);
+      mockEnv.DB.prepare().first.mockResolvedValue(null);
 
       // Make the request
       const response = await worker.fetch(mockRequest, mockEnv);
@@ -326,21 +307,22 @@ describe('Worker', () => {
       const result = await response.json();
 
       // Verify response structure
-      expect(result).toHaveProperty('apiCalls');
-      expect(result).toHaveProperty('errors');
-      expect(result.apiCalls).toHaveProperty('sync');
-      expect(result.apiCalls).toHaveProperty('createGroup');
-      expect(result.apiCalls).toHaveProperty('getUpdates');
-      expect(result.apiCalls).toHaveProperty('health');
-      expect(result.apiCalls).toHaveProperty('metrics');
-      expect(result.errors).toHaveProperty('sync');
-      expect(result.errors).toHaveProperty('createGroup');
-      expect(result.errors).toHaveProperty('getUpdates');
-      expect(result.errors).toHaveProperty('health');
-      expect(result.errors).toHaveProperty('metrics');
-
-      // Verify metrics call was counted
-      expect(result.apiCalls.metrics).toBe(1);
+      expect(result).toEqual({
+        apiCalls: {
+          sync: 0,
+          createGroup: 0,
+          getUpdates: 0,
+          health: 0,
+          metrics: 1
+        },
+        errors: {
+          sync: 0,
+          createGroup: 0,
+          getUpdates: 0,
+          health: 0,
+          metrics: 0
+        }
+      });
     });
   });
 });

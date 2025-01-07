@@ -1,3 +1,5 @@
+import { reportError } from './error-reporting.js';
+
 export class SyncManager {
   constructor(historyManager) {
     this.history = historyManager;
@@ -30,6 +32,7 @@ export class SyncManager {
       this.restartSyncInterval();
     } catch (error) {
       console.error('Failed to sync after coming back online:', error);
+      await reportError(error, { context: 'sync_after_online' });
       // Schedule a retry
       this.scheduleRetry();
     }
@@ -51,8 +54,9 @@ export class SyncManager {
     }
 
     this.syncInterval = setInterval(() => {
-      this.history.syncHistory().catch(error => {
+      this.history.syncHistory().catch(async error => {
         console.error('Periodic sync failed:', error);
+        await reportError(error, { context: 'periodic_sync' });
         if (error.message.includes('Offline')) {
           // Don't retry - we'll sync when we're back online
           if (this.syncInterval) {
@@ -75,6 +79,7 @@ export class SyncManager {
       this.restartSyncInterval();
     } catch (error) {
       console.error('Failed to start sync:', error);
+      await reportError(error, { context: 'start_sync' });
       if (error.message.includes('Offline')) {
         // We'll sync when we're back online
         console.log('Offline, waiting for connection');

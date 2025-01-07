@@ -1,20 +1,20 @@
 import { defineConfig } from '@playwright/test';
 
+import { baseConfig } from './tests/common/test-config';
+
 export default defineConfig({
+  ...baseConfig,
   testDir: './tests/e2e',
   timeout: 60000,
   expect: {
     timeout: 10000,
   },
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 3 : undefined,
-  reporter: process.env.CI ? 'github' : 'list',
   use: {
+    ...baseConfig.use,
     trace: 'on-first-retry',
     video: 'on-first-retry',
     screenshot: 'on',
-    // Use the environment variable for screenshot directory if provided
     _screenshotDir: process.env.SCREENSHOT_DIR || './test-results/screenshots',
   },
   projects: [

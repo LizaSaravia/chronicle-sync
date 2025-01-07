@@ -16,7 +16,7 @@ Chronicle Sync uses GitHub Actions for continuous integration and deployment, wi
    - Triggered by successful CI/CD workflow
    - Deploys dashboard to staging on main branch
    - Deploys to production on version tags
-   - Configures custom domains
+   - Uses Cloudflare Pages default URLs
 
 3. **Cloudflare Worker Deployment** (`cloudflare-worker.yml`)
    - Triggered by successful CI/CD workflow
@@ -50,12 +50,12 @@ The deployment process is triggered automatically when:
 
 ### Staging Deployment
 - Triggered on merges to `main`
-- Deploys to `staging.$DOMAIN`
+- Deploys to `preview.chronicle-sync.pages.dev`
 - Uses staging Cloudflare resources (DB, KV)
 
 ### Production Deployment
 - Triggered on version tags (`v*`)
-- Deploys to main domain and `www` subdomain
+- Deploys to `dashboard.chroniclesync.xyz`
 - Uses production Cloudflare resources
 
 ## Required Secrets
@@ -69,7 +69,7 @@ STAGING_DB_ID: D1 database ID for staging
 STAGING_KV_ID: KV namespace ID for staging
 PROD_DB_ID: D1 database ID for production
 PROD_KV_ID: KV namespace ID for production
-CLOUDFLARE_DOMAIN: Your domain name (optional)
+# Custom domains are managed through Cloudflare dashboard
 ```
 
 ## Deployment Validation

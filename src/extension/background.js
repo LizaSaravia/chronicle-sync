@@ -1,14 +1,26 @@
-import { ApiClient } from './utils/api.js';
-import { CryptoManager } from './utils/crypto.js';
-import { HistoryManager } from './utils/history.js';
-import { StorageManager } from './utils/storage.js';
-import { SyncManager } from './utils/sync.js';
+// Use dynamic imports for service worker compatibility
+let ApiClient, CryptoManager, HistoryManager, StorageManager, SyncManager;
+
+async function importDependencies() {
+  const api = await import('./utils/api.js');
+  const crypto = await import('./utils/crypto.js');
+  const history = await import('./utils/history.js');
+  const storage = await import('./utils/storage.js');
+  const sync = await import('./utils/sync.js');
+
+  ApiClient = api.ApiClient;
+  CryptoManager = crypto.CryptoManager;
+  HistoryManager = history.HistoryManager;
+  StorageManager = storage.StorageManager;
+  SyncManager = sync.SyncManager;
+}
 
 const VERSION = '1.0.0';
 let syncManager = null;
 
 // Initialize sync with password
 async function initializeSync(password, environment = 'production', customApiUrl = null) {
+  await importDependencies();
   try {
     if (!password || typeof password !== 'string' || password.length < 8) {
       throw new Error('Password must be at least 8 characters long');

@@ -172,7 +172,7 @@ This allows sufficient time for debugging deployment issues while managing stora
 ### Custom Domains
 
 The Pages deployment workflow automatically configures custom domains:
-- Staging: dashboard-staging.chroniclesync.xyz
+- Staging: preview.chronicle-sync.pages.dev
 - Production: Managed through Cloudflare dashboard
 
 ## Related Documentation

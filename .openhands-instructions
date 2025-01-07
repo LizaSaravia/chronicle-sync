@@ -2,63 +2,14 @@
 
 ## Repository Structure
 
-```
-chronicle-sync/
-├── src/                 # Extension source code
-│   ├── background/      # Service worker scripts
-│   ├── content/         # Content scripts
-│   └── popup/          # Extension popup UI
-├── worker/             # Cloudflare Workers code
-├── cypress/            # E2E tests
-├── tests/              # Unit tests
-├── docs/              # Technical documentation
-│   └── screenshots/   # Generated test screenshots (not in repo)
-└── .github/           # GitHub Actions workflows
-```
-
 ## Development Workflow
-
-1. **Build Configuration**
-   - Two separate webpack configurations for different purposes:
-     - `webpack.config.js`: Builds the browser extension components
-       - Handles background service worker, popup UI, and options page
-       - Includes extension assets (manifest.json, HTML files, icons)
-       - Outputs to `dist` directory
-     - `webpack.worker.js`: Builds the Cloudflare Worker backend
-       - Targets webworker environment
-       - Single entry point for backend code
-       - Outputs optimized ES module to `worker` directory
-
-2. **Code Changes**
-   - Write tests for new features using Vitest and Puppeteer
-   - Follow TypeScript best practices and existing patterns
-   - Run tests locally before committing:
-     - Unit tests: `npm test`
-     - Watch mode: `npm run test:watch`
-     - E2E tests: `npm run test:e2e`
-   - Use ESLint for code quality (`npm run lint`)
-   - Format code with Prettier (`npm run format`)
 
 2. **Documentation and Screenshots**
    - Technical details go in /docs
    - Keep README.md focused on quick start and high-level overview
-   - Document API changes in /docs/api.md
-   - Update security model in /docs/security.md when relevant
-   - Screenshots are automatically generated during E2E tests:
-     - Never commit screenshots to the repository
-     - Screenshots are stored as GitHub Actions artifacts
-     - Deployed to chroniclesync.xyz via GitHub Pages
-     - Always use https://chroniclesync.xyz/screenshots/... URLs in documentation
 
 3. **CI/CD Pipeline**
    - Tests run on all PRs (GitHub Actions)
-   - E2E tests generate screenshots and store as artifacts
-   - Main branch merges trigger:
-     - Staging deployment to Cloudflare
-     - Screenshot deployment to chroniclesync.xyz
-     - Documentation updates with latest test results
-   - Production deploys from version tags (v*)
-   - Monitor deployments in Cloudflare Dashboard
 
 ## Security Requirements
 
@@ -67,23 +18,3 @@ chronicle-sync/
 - No plaintext data in Cloudflare storage (R2/D1/KV)
 - Input validation on both client and worker
 - Regular security audits of dependencies
-
-## Deployment Process
-
-1. **Staging**
-   - Merges to main trigger staging deployment
-   - Creates beta release on GitHub
-   - Uses staging Cloudflare resources
-
-2. **Production**
-   - Tag a release (v*) for production deployment
-   - Automated deployment to Cloudflare production
-   - Creates GitHub release with changelog
-   - Extension stores must be updated manually
-
-## Version Control
-
-- Feature branches from main
-- PRs require passing tests and review
-- Version tags follow semver (vX.Y.Z)
-- Changelog updates required for releases

@@ -5,8 +5,8 @@ Welcome to the Chronicle Sync documentation. This guide covers everything from u
 ## Live Dashboards & Screenshots
 
 🎯 **Live Environments:**
-- 🌐 [Production Dashboard](https://chronicle-sync.pages.dev) - Live production environment
-- 🧪 [Staging Dashboard](https://staging.chronicle-sync.pages.dev) - Preview upcoming features
+- 🌐 [Production Dashboard](https://dashboard.chroniclesync.xyz) - Live production environment
+- 🧪 [Staging Dashboard](https://preview.chronicle-sync.pages.dev) - Preview upcoming features
 
 📸 **Latest Screenshots:**
 <div class="screenshot-gallery">

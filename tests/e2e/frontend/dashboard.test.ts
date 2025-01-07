@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
 
-import { test } from './fixtures';
+import { test } from '../../common/fixtures';
 
 test.describe('Dashboard E2E Tests', () => {
   test('should load dashboard', async ({ page }) => {

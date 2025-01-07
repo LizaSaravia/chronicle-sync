@@ -3,8 +3,9 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import App from '../../src/dashboard/App';
-import { AuthService } from '../../src/dashboard/services/auth';
+import App from '../../../src/dashboard/App';
+import { AuthService } from '../../../src/dashboard/services/auth';
+import { mockFetch, createMockAuthService } from '../../common/test-helpers';
 
 const theme = createTheme({
   palette: {
@@ -19,26 +20,30 @@ const theme = createTheme({
 });
 
 // Mock fetch globally
-global.fetch = vi.fn();
+global.fetch = mockFetch();
 
 describe('App', () => {
-  const mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+  const mockAuth = createMockAuthService();
+  let mockConsoleErr: ReturnType<typeof vi.spyOn>;
 
-  afterEach(() => {
-    mockConsoleError.mockClear();
-  });
   beforeEach(() => {
-    fetch.mockReset();
+    mockConsoleErr = vi.spyOn(console, 'error').mockImplementation(() => {});
+
     // Default mock for fetch to return empty array
-    fetch.mockResolvedValue({
+    vi.mocked(fetch).mockResolvedValue({
       ok: true,
       json: async () => []
     });
 
     // Mock AuthService
-    vi.spyOn(AuthService, 'isAuthenticated').mockReturnValue(true);
-    vi.spyOn(AuthService, 'getToken').mockReturnValue('mock-token');
-    vi.spyOn(AuthService, 'getGroupId').mockReturnValue('mock-group');
+    Object.keys(mockAuth).forEach(key => {
+      vi.spyOn(AuthService, key as keyof typeof AuthService).mockImplementation(mockAuth[key]);
+    });
+  });
+
+  afterEach(() => {
+    mockConsoleErr.mockClear();
+    vi.mocked(fetch).mockReset();
   });
 
   it('renders the dashboard title', async () => {
@@ -173,7 +178,7 @@ describe('App', () => {
     });
 
     await waitFor(() => {
-      expect(mockConsoleError).toHaveBeenCalledWith(
+      expect(mockConsoleErr).toHaveBeenCalledWith(
         'Error fetching history:',
         expect.any(Error)
       );
@@ -194,7 +199,7 @@ describe('App', () => {
     });
 
     await waitFor(() => {
-      expect(mockConsoleError).toHaveBeenCalledWith(
+      expect(mockConsoleErr).toHaveBeenCalledWith(
         'Error fetching history:',
         expect.any(Error)
       );
@@ -218,7 +223,7 @@ describe('App', () => {
     });
 
     await waitFor(() => {
-      expect(mockConsoleError).toHaveBeenCalledWith(
+      expect(mockConsoleErr).toHaveBeenCalledWith(
         'Error fetching history:',
         expect.any(Error)
       );

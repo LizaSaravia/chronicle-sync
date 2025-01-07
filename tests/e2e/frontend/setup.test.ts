@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
 
-import { test } from './fixtures';
+import { test } from '../../common/fixtures';
 
 test.describe('Initial setup', () => {
   test('should pass basic test', async () => {
