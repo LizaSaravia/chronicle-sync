@@ -164,11 +164,6 @@ Triggered automatically after successful CI/CD workflow:
    - Creates GitHub release with changelog
    - Requires manual extension store updates
 
-### OpenHands Integration
-- Automated issue/PR handling via openhands-resolver.yml
-- Triggered by labels and comments
-- Configurable through repository variables
-- Uses OpenHands AI for automated responses
 
 ## Version Control
 
