@@ -61,7 +61,7 @@ jobs:
 
           # Deploy worker
           echo "Deploying worker to staging..."
-          wrangler deploy --config wrangler.worker.toml --env staging dist/worker/worker.js
+          pnpm exec wrangler deploy --config wrangler.worker.toml --env staging dist/worker/worker.js
 
           # Verify deployment
           echo "Verifying staging deployment..."
@@ -122,7 +122,7 @@ jobs:
 
           # Deploy worker
           echo "Deploying worker to production..."
-          wrangler deploy --config wrangler.worker.toml --env production dist/worker/worker.js
+          pnpm exec wrangler deploy --config wrangler.worker.toml --env production dist/worker/worker.js
 
           # Verify deployment
           echo "Verifying production deployment..."
