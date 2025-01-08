@@ -31,11 +31,11 @@ jobs:
       - name: Build worker
         run: |
           echo "Building worker..."
-          pnpm webpack --config webpack.worker.js --mode production
+          pnpm run build:worker
           
           # Verify worker build succeeded
-          if [ ! -f "dist/worker/worker.js" ]; then
-            echo "Error: Worker build failed - worker.js not found"
+          if [ ! -f "dist/worker/worker.js" ] || [ ! -f "dist-worker/worker.js" ]; then
+            echo "Error: Worker build failed - worker.js not found in dist/worker or dist-worker"
             exit 1
           fi
 
@@ -92,11 +92,11 @@ jobs:
       - name: Build worker
         run: |
           echo "Building worker..."
-          pnpm webpack --config webpack.worker.js --mode production
+          pnpm run build:worker
           
           # Verify worker build succeeded
-          if [ ! -f "dist/worker/worker.js" ]; then
-            echo "Error: Worker build failed - worker.js not found"
+          if [ ! -f "dist/worker/worker.js" ] || [ ! -f "dist-worker/worker.js" ]; then
+            echo "Error: Worker build failed - worker.js not found in dist/worker or dist-worker"
             exit 1
           fi
 

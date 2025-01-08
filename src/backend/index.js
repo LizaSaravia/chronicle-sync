@@ -36,6 +36,9 @@ export default {
         if (path === "/api/get-updates") {
           return await getUpdates(request, env);
         }
+        if (path === "/health") {
+          return await checkHealth(env);
+        }
       }
 
       return new Response("Not Found", {
@@ -43,6 +46,7 @@ export default {
         headers: corsHeaders,
       });
     } catch (error) {
+      console.error("Error:", error);
       return new Response(JSON.stringify({ error: error.message }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -163,5 +167,57 @@ async function getUpdates(request, env) {
 
   return new Response(JSON.stringify({ updates }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+async function checkHealth(env) {
+  const services = {};
+  const errors = [];
+
+  try {
+    // Check D1 Database
+    await env.DB.prepare("SELECT 1").first();
+    services.db = "ok";
+  } catch (error) {
+    services.db = "error";
+    errors.push(`DB error: ${error.message}`);
+  }
+
+  try {
+    // Check KV
+    const testKey = "health-check";
+    await env.SYNC_KV.put(testKey, "test");
+    await env.SYNC_KV.delete(testKey);
+    services.kv = "ok";
+  } catch (error) {
+    services.kv = "error";
+    errors.push(`KV error: ${error.message}`);
+  }
+
+  try {
+    // Check R2
+    const testKey = "health-check";
+    await env.SYNC_BUCKET.put(testKey, "test");
+    await env.SYNC_BUCKET.delete(testKey);
+    services.r2 = "ok";
+  } catch (error) {
+    services.r2 = "error";
+    errors.push(`R2 error: ${error.message}`);
+  }
+
+  const allServicesOk = Object.values(services).every((status) => status === "ok");
+  const response = {
+    status: allServicesOk ? "healthy" : "unhealthy",
+    services,
+    environment: env.ENVIRONMENT,
+  };
+
+  if (errors.length > 0) {
+    response.errors = errors;
+  }
+
+  return new Response(JSON.stringify(response, null, 2), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    status: allServicesOk ? 200 : 500,
   });
 }
