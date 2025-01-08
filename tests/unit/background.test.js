@@ -1,5 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Mock Logger before importing background script
+vi.mock('../../src/extension/utils/logger.js', () => ({
+  Logger: vi.fn().mockImplementation(() => ({
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn()
+  }))
+}));
+
 // Mock chrome API before importing background script
 const mockChrome = {
   runtime: {

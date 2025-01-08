@@ -20,7 +20,7 @@ export async function reportError(error, context = {}) {
         stack: error.stack,
         timestamp: new Date().toISOString(),
         context: context,
-        userAgent: navigator.userAgent,
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Service Worker',
         extensionVersion: chrome.runtime.getManifest().version
     };
 
