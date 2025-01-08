@@ -4,7 +4,6 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type'
 };
 
-// Metrics storage
 let metrics = {
   apiCalls: {
     sync: 0,
@@ -180,7 +179,6 @@ async function handleGetUpdates(request, env) {
     const updates = [];
     for (const obj of objects.objects) {
       try {
-        // Skip objects that are older than the requested timestamp
         const timestamp = parseInt(obj.key.split('/')[1]);
         if (isNaN(timestamp) || timestamp <= since) continue;
 
@@ -218,6 +216,27 @@ async function handleGetUpdates(request, env) {
   }
 }
 
+async function initializeDatabase(env) {
+  // Create sync_groups table
+  await env.DB.exec(`
+    CREATE TABLE IF NOT EXISTS sync_groups (
+      id TEXT PRIMARY KEY,
+      created_at INTEGER NOT NULL,
+      last_updated INTEGER NOT NULL
+    )
+  `);
+
+  // Create devices table
+  await env.DB.exec(`
+    CREATE TABLE IF NOT EXISTS devices (
+      id TEXT PRIMARY KEY,
+      sync_group_id TEXT NOT NULL,
+      last_sync INTEGER NOT NULL,
+      FOREIGN KEY(sync_group_id) REFERENCES sync_groups(id)
+    )
+  `);
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') {
@@ -225,20 +244,8 @@ export default {
     }
 
     try {
-      await env.DB.exec(`
-        CREATE TABLE IF NOT EXISTS sync_groups (
-          id TEXT PRIMARY KEY,
-          created_at INTEGER NOT NULL,
-          last_updated INTEGER NOT NULL
-        );
-
-        CREATE TABLE IF NOT EXISTS devices (
-          id TEXT PRIMARY KEY,
-          sync_group_id TEXT NOT NULL,
-          last_sync INTEGER NOT NULL,
-          FOREIGN KEY(sync_group_id) REFERENCES sync_groups(id)
-        );
-      `);
+      // Initialize database tables separately
+      await initializeDatabase(env);
 
       const url = new URL(request.url);
       const path = url.pathname;

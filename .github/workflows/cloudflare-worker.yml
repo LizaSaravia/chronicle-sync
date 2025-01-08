@@ -65,6 +65,13 @@ jobs:
           # Deploy worker
           echo "Deploying worker to staging..."
           wrangler deploy --config wrangler.worker.toml --env staging dist/worker/worker.js
+
+          # Install node-fetch for health check
+          npm install --no-save node-fetch
+
+          # Verify deployment
+          echo "Verifying staging deployment..."
+          node scripts/deploy/verify-deployment.js staging
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -125,6 +132,13 @@ jobs:
           # Deploy worker
           echo "Deploying worker to production..."
           wrangler deploy --config wrangler.worker.toml --env production dist/worker/worker.js
+
+          # Install node-fetch for health check
+          npm install --no-save node-fetch
+
+          # Verify deployment
+          echo "Verifying production deployment..."
+          node scripts/deploy/verify-deployment.js production
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

@@ -3,6 +3,8 @@
 A secure, cross-platform browser extension for syncing your browsing data across devices. Built with modern web technologies and powered by Cloudflare's infrastructure.
 
 [![CI/CD Status](https://github.com/posix4e/chronicle-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/posix4e/chronicle-sync/actions/workflows/ci.yml)
+[![Staging Health](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/posix4e/chronicle-sync/main/.github/badges/staging-health.json)](https://api-staging.chroniclesync.xyz/health)
+[![Production Health](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/posix4e/chronicle-sync/main/.github/badges/prod-health.json)](https://api.chroniclesync.xyz/health)
 
 ## Overview
 
