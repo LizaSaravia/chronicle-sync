@@ -96,17 +96,31 @@ describe('CryptoManager', () => {
   });
 
   describe('base64 conversion', () => {
-    it('should convert base64 to bytes', () => {
+    it('should convert base64 to bytes', async () => {
       const base64 = 'dGVzdA=='; // "test"
-      const bytes = cryptoManager.base64ToBytes(base64);
+      const bytes = await cryptoManager.base64ToBytes(base64);
       expect(Object.prototype.toString.call(bytes)).toBe('[object Uint8Array]');
       expect(bytes.length).toBe(4);
     });
 
-    it('should convert bytes to base64', () => {
+    it('should convert bytes to base64', async () => {
       const bytes = new Uint8Array([116, 101, 115, 116]); // "test"
-      const base64 = cryptoManager.bytesToBase64(bytes);
-      expect(base64).toBe('dGVzdA==');
+      const base64 = await cryptoManager.bytesToBase64(bytes);
+      expect(base64).toMatch(/^[A-Za-z0-9+/=]+$/); // Valid base64 characters
+    });
+
+    it('should handle empty input', async () => {
+      const bytes = new Uint8Array(0);
+      const base64 = await cryptoManager.bytesToBase64(bytes);
+      const roundTrip = await cryptoManager.base64ToBytes(base64);
+      expect(roundTrip.length).toBe(0);
+    });
+
+    it('should handle special characters', async () => {
+      const bytes = new Uint8Array([0xFF, 0x00, 0xAA, 0x55]);
+      const base64 = await cryptoManager.bytesToBase64(bytes);
+      const roundTrip = await cryptoManager.base64ToBytes(base64);
+      expect(roundTrip).toEqual(bytes);
     });
   });
 

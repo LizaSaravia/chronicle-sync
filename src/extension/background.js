@@ -1,6 +1,6 @@
 // Import logger statically since it's needed immediately
 import { Logger } from './utils/logger.js';
-import { VERSION } from './utils/version.js';
+import { VERSION, GIT_HASH } from './utils/version.js';
 
 // Use dynamic imports for service worker compatibility
 let ApiClient, CryptoManager, HistoryManager, StorageManager, SyncManager;
@@ -80,7 +80,7 @@ async function initializeSync(password, environment = 'production', customApiUrl
 
 // Handle extension installation or update
 chrome.runtime.onInstalled.addListener(async () => {
-  log.info(`Chronicle Sync ${VERSION} installed`, { version: VERSION });
+  log.info(`Chronicle Sync ${VERSION} (${GIT_HASH}) installed`, { version: VERSION, gitHash: GIT_HASH });
   
   // Check if already initialized
   const storage = await chrome.storage.local.get('initialized');

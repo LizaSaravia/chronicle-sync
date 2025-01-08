@@ -23,15 +23,28 @@ class CryptoManager {
     return new TextDecoder().decode(bytes);
   }
 
-  // Convert between base64 and bytes
+  // Convert between base64 and bytes using Uint8Array
   base64ToBytes(base64) {
-    const binString = atob(base64);
-    return Uint8Array.from(binString, (m) => m.codePointAt(0));
+    // Add padding if needed
+    const paddedBase64 = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=');
+    // Convert base64 to binary string
+    const binaryStr = self.atob(paddedBase64);
+    // Convert binary string to bytes
+    const bytes = new Uint8Array(binaryStr.length);
+    for (let i = 0; i < binaryStr.length; i++) {
+      bytes[i] = binaryStr.charCodeAt(i);
+    }
+    return bytes;
   }
 
   bytesToBase64(bytes) {
-    const binString = String.fromCodePoint(...bytes);
-    return btoa(binString);
+    // Convert bytes to binary string
+    let binaryStr = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binaryStr += String.fromCharCode(bytes[i]);
+    }
+    // Convert binary string to base64
+    return self.btoa(binaryStr);
   }
 
   async encrypt(data) {
@@ -66,8 +79,13 @@ class CryptoManager {
 
       return this.bytesToBase64(result);
     } catch (error) {
-      console.error('Encryption failed:', error);
-      throw new Error('Failed to encrypt data');
+      console.error('Encryption failed:', {
+        error: error.message,
+        stack: error.stack,
+        type: error.name,
+        data: typeof data
+      });
+      throw new Error(`Failed to encrypt data: ${error.message}`);
     }
   }
 
@@ -101,8 +119,13 @@ class CryptoManager {
 
       return JSON.parse(this.bytesToString(new Uint8Array(decrypted)));
     } catch (error) {
-      console.error('Decryption failed:', error);
-      throw new Error('Failed to decrypt data. The password may be incorrect.');
+      console.error('Decryption failed:', {
+        error: error.message,
+        stack: error.stack,
+        type: error.name,
+        dataLength: encryptedData?.length
+      });
+      throw new Error(`Failed to decrypt data: ${error.message}. The password may be incorrect.`);
     }
   }
 
@@ -116,8 +139,12 @@ class CryptoManager {
         throw new Error('Encryption test failed: data mismatch');
       }
     } catch (error) {
-      console.error('Crypto test failed:', error);
-      throw new Error('Failed to initialize encryption: ' + error.message);
+      console.error('Crypto test failed:', {
+        error: error.message,
+        stack: error.stack,
+        type: error.name
+      });
+      throw new Error(`Failed to initialize encryption: ${error.message}`);
     }
   }
 }

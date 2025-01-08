@@ -55,7 +55,14 @@ export default {
       Buffer: ['buffer', 'Buffer'],
     }),
     new webpack.DefinePlugin({
-      'process.env.VERSION': JSON.stringify(version)
+      'process.env.VERSION': JSON.stringify(version),
+      'process.env.GIT_HASH': JSON.stringify(process.env.GIT_HASH || 'unknown')
+    }),
+    new webpack.BannerPlugin({
+      banner: `Chronicle Sync v${version}
+Copyright (c) 2024 Chronicle Sync Contributors
+Licensed under the MIT License. See LICENSE file for details.`,
+      entryOnly: true
     }),
     new CopyPlugin({
       patterns: [
