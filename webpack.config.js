@@ -5,6 +5,8 @@ import { fileURLToPath } from "url";
 import CopyPlugin from "copy-webpack-plugin";
 import webpack from "webpack";
 
+import { HOST_PATTERNS } from "./src/shared/constants.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -72,6 +74,7 @@ Licensed under the MIT License. See LICENSE file for details.`,
           transform(content) {
             const manifest = JSON.parse(content);
             manifest.version = version;
+            manifest.host_permissions = [HOST_PATTERNS.api];
             return JSON.stringify(manifest, null, 2);
           },
         },

@@ -233,9 +233,14 @@ describe("Service Worker Context Tests", () => {
       // Report error
       await reportError(error, context);
 
+      // Import API constants
+      const { API_BASE, ERROR_REPORTING_PATHS } = await import(
+        "../../../src/shared/constants.js"
+      );
+
       // Verify fetch was called with correct data
       expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining("discord.com/api/webhooks"),
+        `${API_BASE.staging}${ERROR_REPORTING_PATHS.reportError}`,
         expect.objectContaining({
           method: "POST",
           headers: expect.objectContaining({

@@ -1,15 +1,15 @@
+import { API_BASE, API_PATHS } from "../../src/shared/constants.js";
+
 describe("Worker Health Check", () => {
-  const STAGING_URL = "https://api-staging.chroniclesync.xyz";
-  const PROD_URL = "https://api.chroniclesync.xyz";
 
   async function checkHealth(url) {
-    const response = await fetch(`${url}/health`);
+    const response = await fetch(`${url}${API_PATHS.health}`);
     const data = await response.json();
     return { response, data };
   }
 
   test("staging health check returns healthy status", async () => {
-    const { response, data } = await checkHealth(STAGING_URL);
+    const { response, data } = await checkHealth(API_BASE.staging);
     expect(response.status).toBe(200);
     expect(data.status).toBe("healthy");
     expect(data.services).toEqual({
@@ -20,7 +20,7 @@ describe("Worker Health Check", () => {
   });
 
   test("production health check returns healthy status", async () => {
-    const { response, data } = await checkHealth(PROD_URL);
+    const { response, data } = await checkHealth(API_BASE.production);
     expect(response.status).toBe(200);
     expect(data.status).toBe("healthy");
     expect(data.services).toEqual({

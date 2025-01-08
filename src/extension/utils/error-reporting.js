@@ -1,5 +1,4 @@
-const DISCORD_WEBHOOK =
-  "https://discord.com/api/webhooks/1326006790500126750/RbTZ2KVA7p_Y1q5mRtJ9GcyuzEppMQe5RY0dal8_JFB2La45kBv9u2k-JLfGXMxk-OUB";
+import { getApiUrl, ERROR_REPORTING_PATHS } from "../../shared/constants.js";
 
 async function isErrorReportingEnabled() {
   const storage = await chrome.storage.local.get([
@@ -33,7 +32,9 @@ export async function reportError(error, context = {}) {
   };
 
   try {
-    const response = await fetch(DISCORD_WEBHOOK, {
+    const storage = await chrome.storage.local.get(["environment"]);
+    const baseUrl = getApiUrl(storage.environment);
+    const response = await fetch(`${baseUrl}${ERROR_REPORTING_PATHS.reportError}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

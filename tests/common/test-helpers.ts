@@ -1,5 +1,7 @@
 import { vi } from "vitest";
 
+import { API_BASE, API_PATHS } from "../../src/shared/constants.js";
+
 export function createMockDB() {
   return {
     exec: vi.fn().mockResolvedValue(undefined),
@@ -38,7 +40,7 @@ export function createMockEnv() {
 
 export function createMockRequest(
   method = "POST",
-  url = "http://example.com/api/sync",
+  url = `${API_BASE.development}${API_PATHS.sync}`,
 ) {
   return {
     method,
