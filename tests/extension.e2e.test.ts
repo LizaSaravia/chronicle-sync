@@ -72,4 +72,73 @@ test.describe('Extension End-to-End Test', () => {
     `);
     await expect(page.getByText('Chronicle Sync')).toBeVisible();
   });
+
+  test('should initialize extension in service worker context', async () => {
+    // Get the background page (service worker)
+    const backgroundPages = context.backgroundPages();
+    expect(backgroundPages.length).toBeGreaterThan(0);
+    const backgroundPage = backgroundPages[0];
+
+    // Test initialization with a password
+    const testResult = await backgroundPage.evaluate(async () => {
+      try {
+        // Send initialization message
+        const response = await chrome.runtime.sendMessage({
+          type: 'INITIALIZE',
+          password: 'test-password-123',
+          environment: 'production'
+        });
+
+        return {
+          success: response.success,
+          error: response.error
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: error.message
+        };
+      }
+    });
+
+    // Check that initialization succeeded
+    expect(testResult.success).toBe(true);
+    expect(testResult.error).toBeUndefined();
+
+    // Verify storage was updated
+    const storageState = await backgroundPage.evaluate(async () => {
+      return await chrome.storage.local.get(['initialized', 'environment']);
+    });
+
+    expect(storageState.initialized).toBe(true);
+    expect(storageState.environment).toBe('production');
+  });
+
+  test('should handle error reporting in service worker context', async () => {
+    const backgroundPages = context.backgroundPages();
+    const backgroundPage = backgroundPages[0];
+
+    // Test error reporting functionality
+    const testResult = await backgroundPage.evaluate(async () => {
+      try {
+        // Import error reporting
+        const { reportError } = await import('./utils/error-reporting.js');
+        
+        // Create a test error
+        const testError = new Error('Test error in service worker');
+        
+        // Report the error
+        await reportError(testError, { context: 'e2e_test' });
+        
+        return { success: true };
+      } catch (error) {
+        return {
+          success: false,
+          error: error.message
+        };
+      }
+    });
+
+    expect(testResult.success).toBe(true);
+  });
 });

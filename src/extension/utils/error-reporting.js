@@ -15,12 +15,16 @@ export async function reportError(error, context = {}) {
         console.log('Error reporting disabled, skipping report:', error);
         return;
     }
+
+    // Get runtime context
+    const isServiceWorker = typeof window === 'undefined';
+    
     const errorDetails = {
         message: error.message,
         stack: error.stack,
         timestamp: new Date().toISOString(),
         context: context,
-        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Service Worker',
+        runtime: isServiceWorker ? 'Service Worker' : 'Window',
         extensionVersion: chrome.runtime.getManifest().version
     };
 
@@ -43,6 +47,11 @@ export async function reportError(error, context = {}) {
                         {
                             name: 'Context',
                             value: `\`\`\`json\n${JSON.stringify(context, null, 2)}\n\`\`\``,
+                        },
+                        {
+                            name: 'Runtime Context',
+                            value: errorDetails.runtime,
+                            inline: true
                         },
                         {
                             name: 'Extension Version',
