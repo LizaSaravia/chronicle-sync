@@ -39,15 +39,10 @@ jobs:
             exit 1
           fi
 
-      - name: Install Wrangler
-        run: npm install -g wrangler@latest
-
-      # Pages project configuration is now handled through Cloudflare dashboard
-
       - name: Deploy Pages (Staging)
         run: |
           echo "Deploying dashboard to staging..."
-          wrangler pages deploy dist/dashboard \
+          pnpm exec wrangler pages deploy dist/dashboard \
             --project-name chronicle-sync \
             --branch preview \
             --commit-dirty=true
@@ -87,13 +82,10 @@ jobs:
             exit 1
           fi
 
-      - name: Install Wrangler
-        run: npm install -g wrangler@latest
-
       - name: Deploy Pages (Production)
         run: |
           echo "Deploying dashboard to production..."
-          wrangler pages deploy dist/dashboard \
+          pnpm exec wrangler pages deploy dist/dashboard \
             --project-name chronicle-sync \
             --branch production \
             --commit-dirty=true
