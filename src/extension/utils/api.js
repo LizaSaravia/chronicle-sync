@@ -37,7 +37,7 @@ export class ApiClient {
         console.log("Checking health endpoint:", healthUrl);
 
         const response = await fetch(healthUrl, {
-          method: "HEAD",
+          method: "GET",
           signal: controller.signal,
           headers: {
             Origin: chrome.runtime.getURL(""),
