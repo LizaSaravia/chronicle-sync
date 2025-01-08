@@ -27,9 +27,10 @@ Screenshots are automatically generated during E2E tests and are handled as foll
 To add new screenshots to the documentation:
 
 1. Add screenshot capture code in your E2E tests:
+
    ```typescript
    await page.screenshot({
-     path: `docs/screenshots/your-feature/${timestamp}_description.png`
+     path: `docs/screenshots/your-feature/${timestamp}_description.png`,
    });
    ```
 

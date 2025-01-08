@@ -9,6 +9,7 @@ Chronicle Sync uses two separate Vitest configurations to handle different types
 ### 1. End-to-End Tests (`vitest.config.js`)
 
 This configuration is optimized for end-to-end (E2E) testing:
+
 ```javascript
 {
   test: {
@@ -26,6 +27,7 @@ This configuration is optimized for end-to-end (E2E) testing:
 ```
 
 Key features:
+
 - Sequential test execution
 - Shared browser instance for efficiency
 - Extended timeouts for complex operations
@@ -34,6 +36,7 @@ Key features:
 ### 2. Unit Tests (`vitest.config.ts`)
 
 This configuration is specialized for unit testing:
+
 ```javascript
 {
   test: {
@@ -47,6 +50,7 @@ This configuration is specialized for unit testing:
 ```
 
 Key features:
+
 - Isolated test execution
 - Focused on unit test directory
 - Simpler configuration for faster execution
@@ -58,12 +62,14 @@ The project uses multiple Wrangler configuration templates to manage different a
 ### 1. Main Configuration (`wrangler.toml.template`)
 
 The primary configuration file that includes:
+
 - Worker settings
 - Pages configuration
 - Environment-specific settings (staging/production)
 - Resource bindings (R2, D1, KV)
 
 Example structure:
+
 ```toml
 name = "chronicle-sync"
 main = "dist-worker/worker.js"
@@ -82,6 +88,7 @@ main = "dist-worker/worker.js"
 - `wrangler.pages.toml.template`: Cloudflare Pages specific configuration
 
 This separation allows for:
+
 - Independent deployment of different components
 - Easier maintenance and updates
 - Clear separation of concerns
@@ -92,6 +99,7 @@ This separation allows for:
 ### Best Practices
 
 1. **Testing**
+
    - Use the appropriate test configuration for your test type
    - E2E tests should use `vitest.config.js`
    - Unit tests should use `vitest.config.ts`
@@ -104,11 +112,13 @@ This separation allows for:
 ### Template Usage
 
 The `.template` suffix indicates these are template files that should be:
+
 1. Copied to their non-template name during deployment
 2. Have their variables replaced with actual values
 3. Used as the basis for the final configuration
 
 For example:
+
 ```bash
 # During deployment
 cp wrangler.toml.template wrangler.toml
@@ -120,12 +130,14 @@ cp wrangler.toml.template wrangler.toml
 ### CI/CD Pipeline (`ci.yml`)
 
 The main CI/CD pipeline is configured to:
+
 - Run on push to main/staging branches
 - Run on version tags (`v*`)
 - Run on pull requests
 - Support manual triggers via workflow_dispatch
 
 Key features:
+
 - Concurrent runs are cancelled via `concurrency` group
 - Uses Turbo for caching and build optimization
 - Supports SauceLabs for E2E testing
@@ -134,6 +146,7 @@ Key features:
 ### Deployment Workflows
 
 Both deployment workflows (`cloudflare-pages.yml` and `cloudflare-worker.yml`):
+
 - Are triggered by successful CI/CD workflow completion
 - Use environment protection rules (staging/production)
 - Deploy to staging on main branch
@@ -143,6 +156,7 @@ Both deployment workflows (`cloudflare-pages.yml` and `cloudflare-worker.yml`):
 ### Environment Variables and Secrets
 
 Required secrets:
+
 ```yaml
 CLOUDFLARE_API_TOKEN: Cloudflare API token
 CLOUDFLARE_ACCOUNT_ID: Cloudflare account ID
@@ -158,6 +172,7 @@ TURBO_TOKEN: Optional token for Turbo remote caching
 ### Artifact Retention
 
 Build artifacts are retained with specific durations:
+
 - Test artifacts: 14 days
   - Coverage reports
   - Test logs
@@ -172,6 +187,7 @@ This allows sufficient time for debugging deployment issues while managing stora
 ### Custom Domains
 
 The Pages deployment workflow automatically configures custom domains:
+
 - Staging: preview.chronicle-sync.pages.dev
 - Production: Managed through Cloudflare dashboard
 

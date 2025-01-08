@@ -7,12 +7,14 @@ This document describes the deployment process for Chronicle Sync, including the
 Chronicle Sync uses GitHub Actions for continuous integration and deployment, with three main workflows:
 
 1. **CI/CD Pipeline** (`ci.yml`)
+
    - Runs tests and builds all components
    - Creates GitHub releases
    - Deploys documentation to GitHub Pages
    - Triggers deployment workflows on success
 
 2. **Cloudflare Pages Deployment** (`cloudflare-pages.yml`)
+
    - Triggered by successful CI/CD workflow
    - Deploys dashboard to staging on main branch
    - Deploys to production on version tags
@@ -31,29 +33,36 @@ For details about the testing and deployment configuration structure, see the [C
 The build process is handled by the CI workflow (`ci.yml`) and includes:
 
 ### 1. Extension Build
+
 ```bash
 pnpm turbo build
 ```
+
 This creates the browser extension files in the `dist` directory.
 
 ### 2. Worker Build
+
 ```bash
 pnpm webpack --config webpack.worker.js --mode production
 ```
+
 This creates the Cloudflare Worker in `dist/worker/worker.js`.
 
 ## Deployment Process
 
 The deployment process is triggered automatically when:
+
 - Changes are merged to `main` (deploys to staging)
 - A new version tag is pushed (deploys to production)
 
 ### Staging Deployment
+
 - Triggered on merges to `main`
 - Deploys to `preview.chronicle-sync.pages.dev`
 - Uses staging Cloudflare resources (DB, KV)
 
 ### Production Deployment
+
 - Triggered on version tags (`v*`)
 - Deploys to `dashboard.chroniclesync.xyz`
 - Uses production Cloudflare resources
@@ -77,11 +86,13 @@ PROD_KV_ID: KV namespace ID for production
 The deployment workflow includes several validation steps:
 
 1. **Artifact Verification**
+
    - Checks if build artifacts exist
    - Verifies directory structure
    - Lists contents for debugging
 
 2. **Worker Validation**
+
    - Verifies worker.js exists and has content
    - Performs JavaScript syntax validation
    - Checks for basic structural requirements
@@ -96,15 +107,19 @@ The deployment workflow includes several validation steps:
 ### Common Issues
 
 1. **Missing Worker Directory**
+
    ```
    Error: dist/worker directory does not exist
    ```
+
    **Solution**: Ensure the worker build step completed successfully. Check the build logs for webpack errors.
 
 2. **Invalid Worker File**
+
    ```
    Error: worker.js contains syntax errors
    ```
+
    **Solution**: Check the worker source code for syntax errors. The build process should catch these during compilation.
 
 3. **Missing Dashboard Files**
@@ -116,6 +131,7 @@ The deployment workflow includes several validation steps:
 ### Debug Steps
 
 1. Check build artifacts:
+
    ```bash
    ls -la dist/
    ls -la dist/worker/
@@ -123,6 +139,7 @@ The deployment workflow includes several validation steps:
    ```
 
 2. Verify worker syntax:
+
    ```bash
    node --check dist/worker/worker.js
    ```
@@ -132,11 +149,13 @@ The deployment workflow includes several validation steps:
 ## Best Practices
 
 1. **Testing**
+
    - Always run tests locally before pushing
    - Use `pnpm turbo test:all` for comprehensive testing
    - Include E2E tests for critical paths
 
 2. **Version Control**
+
    - Use semantic versioning for releases
    - Include meaningful commit messages
    - Create detailed PR descriptions
@@ -160,6 +179,7 @@ The deployment workflow includes several validation steps:
 ## Artifact Retention
 
 Build artifacts are retained for:
+
 - Test artifacts: 14 days
 - Build artifacts: 7 days
 

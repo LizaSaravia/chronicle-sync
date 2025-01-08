@@ -1,4 +1,4 @@
-import { LocalDB } from './db.js';
+import { LocalDB } from "./db.js";
 
 export class HistoryManager {
   constructor(storageManager, apiClient) {
@@ -13,15 +13,20 @@ export class HistoryManager {
     await this.db.init();
 
     // Get or generate device ID
-    let deviceId = await this.db.getSyncMeta('deviceId');
+    let deviceId = await this.db.getSyncMeta("deviceId");
     if (!deviceId) {
       deviceId = crypto.randomUUID();
-      await this.db.setSyncMeta('deviceId', deviceId);
+      await this.db.setSyncMeta("deviceId", deviceId);
     }
 
     // Get or create sync group
-    let groupId = await this.db.getSyncMeta('groupId');
-    const context = typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : globalThis;
+    let groupId = await this.db.getSyncMeta("groupId");
+    const context =
+      typeof window !== "undefined"
+        ? window
+        : typeof self !== "undefined"
+          ? self
+          : globalThis;
     if (!groupId) {
       // Only try to create sync group if online
       if (context.navigator.onLine) {
@@ -33,36 +38,48 @@ export class HistoryManager {
 
           while (retryCount < maxRetries) {
             try {
-              const { groupId: newGroupId } = await this.api.createSyncGroup(deviceId);
+              const { groupId: newGroupId } =
+                await this.api.createSyncGroup(deviceId);
               groupId = newGroupId;
-              await this.db.setSyncMeta('groupId', groupId);
+              await this.db.setSyncMeta("groupId", groupId);
               // Save to chrome.storage.local for the options page
               await chrome.storage.local.set({ groupId });
-              console.log('Successfully created sync group:', groupId);
+              console.log("Successfully created sync group:", groupId);
               break;
             } catch (error) {
               lastError = error;
               retryCount++;
-              if (error.message.includes('Offline')) {
-                console.warn(`Offline while creating sync group (attempt ${retryCount}/${maxRetries})`);
+              if (error.message.includes("Offline")) {
+                console.warn(
+                  `Offline while creating sync group (attempt ${retryCount}/${maxRetries})`,
+                );
                 // Wait longer between retries if we're offline
-                await new Promise(resolve => setTimeout(resolve, 5000));
+                await new Promise((resolve) => setTimeout(resolve, 5000));
               } else {
-                console.warn(`Failed to create sync group (attempt ${retryCount}/${maxRetries}):`, error);
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                console.warn(
+                  `Failed to create sync group (attempt ${retryCount}/${maxRetries}):`,
+                  error,
+                );
+                await new Promise((resolve) => setTimeout(resolve, 2000));
               }
             }
           }
 
           if (!groupId) {
-            console.error('Failed to create sync group after retries:', lastError);
+            console.error(
+              "Failed to create sync group after retries:",
+              lastError,
+            );
             throw lastError;
           }
         } catch (error) {
-          console.warn('Failed to create sync group, will retry during next sync:', error);
+          console.warn(
+            "Failed to create sync group, will retry during next sync:",
+            error,
+          );
         }
       } else {
-        console.log('Offline - skipping sync group creation');
+        console.log("Offline - skipping sync group creation");
       }
     }
 
@@ -76,21 +93,25 @@ export class HistoryManager {
   setupHistoryListener() {
     chrome.history.onVisited.addListener(async (historyItem) => {
       // Get the full history item with title
-      const [fullItem] = await this.getLocalHistory(historyItem.lastVisitTime, 1, historyItem.url);
+      const [fullItem] = await this.getLocalHistory(
+        historyItem.lastVisitTime,
+        1,
+        historyItem.url,
+      );
       if (fullItem) {
         // Add title from history item if available
         const item = {
           ...fullItem,
-          title: fullItem.title || historyItem.title || 'Untitled',
-          lastVisitTime: historyItem.lastVisitTime || Date.now()
+          title: fullItem.title || historyItem.title || "Untitled",
+          lastVisitTime: historyItem.lastVisitTime || Date.now(),
         };
         await this.db.addHistory([item]);
       } else {
         // Add with default title
         const item = {
           ...historyItem,
-          title: historyItem.title || 'Untitled',
-          lastVisitTime: historyItem.lastVisitTime || Date.now()
+          title: historyItem.title || "Untitled",
+          lastVisitTime: historyItem.lastVisitTime || Date.now(),
         };
         await this.db.addHistory([item]);
       }
@@ -98,55 +119,59 @@ export class HistoryManager {
     });
   }
 
-  async getLocalHistory(startTime = null, maxResults = 1000, url = '') {
+  async getLocalHistory(startTime = null, maxResults = 1000, url = "") {
     const query = {
       text: url,
       maxResults,
-      startTime: startTime || (Date.now() - 90 * 24 * 60 * 60 * 1000) // Last 90 days by default
+      startTime: startTime || Date.now() - 90 * 24 * 60 * 60 * 1000, // Last 90 days by default
     };
     try {
       const items = await chrome.history.search(query);
       // Handle case where search fails or returns no results
       if (!items || !Array.isArray(items)) {
-        console.warn('History search returned invalid result:', items);
+        console.warn("History search returned invalid result:", items);
         return [];
       }
       // Add titles if they're missing
-      return items.map(item => ({
+      return items.map((item) => ({
         ...item,
-        title: item.title || url.split('/').pop() || 'Untitled'
+        title: item.title || url.split("/").pop() || "Untitled",
       }));
     } catch (error) {
-      console.error('Failed to search history:', error);
+      console.error("Failed to search history:", error);
       return [];
     }
   }
 
   async loadInitialHistory() {
-    const lastLoad = await this.db.getSyncMeta('lastHistoryLoad') || 0;
+    const lastLoad = (await this.db.getSyncMeta("lastHistoryLoad")) || 0;
     const newHistory = await this.getLocalHistory(lastLoad);
-    
+
     if (newHistory.length > 0) {
       await this.db.addHistory(newHistory);
-      await this.db.setSyncMeta('lastHistoryLoad', Date.now());
+      await this.db.setSyncMeta("lastHistoryLoad", Date.now());
     }
   }
 
-
   async attemptSync() {
-    const context = typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : globalThis;
+    const context =
+      typeof window !== "undefined"
+        ? window
+        : typeof self !== "undefined"
+          ? self
+          : globalThis;
     if (!context.navigator.onLine) {
-      console.log('Offline, skipping sync');
+      console.log("Offline, skipping sync");
       return;
     }
 
     if (!this.groupId) {
-      console.log('No sync group, skipping sync');
+      console.log("No sync group, skipping sync");
       return;
     }
 
-    this.syncHistory().catch(error => {
-      console.error('Background sync failed:', error);
+    this.syncHistory().catch((error) => {
+      console.error("Background sync failed:", error);
     });
   }
 
@@ -161,45 +186,45 @@ export class HistoryManager {
       }
 
       // Get last sync time
-      const lastSync = await this.db.getSyncMeta('lastSync') || 0;
+      const lastSync = (await this.db.getSyncMeta("lastSync")) || 0;
 
       // Get unsynced items
       const unsynced = await this.db.getUnsyncedHistory();
-      
+
       if (unsynced.length > 0) {
         // Encrypt history items
         const encryptedHistory = await Promise.all(
-          unsynced.map(async item => ({
+          unsynced.map(async (item) => ({
             ...item,
-            title: await this.storage.crypto.encrypt(item.title || ''),
-            url: await this.storage.crypto.encrypt(item.url)
-          }))
+            title: await this.storage.crypto.encrypt(item.title || ""),
+            url: await this.storage.crypto.encrypt(item.url),
+          })),
         );
 
         // Sync to server
         await this.api.syncData(this.groupId, this.deviceId, encryptedHistory);
-        
+
         // Mark as synced
-        await this.db.markAsSynced(unsynced.map(item => item.id));
+        await this.db.markAsSynced(unsynced.map((item) => item.id));
       }
 
       // Get updates from other devices
       const response = await this.api.getUpdates(
         this.groupId,
         this.deviceId,
-        lastSync
+        lastSync,
       );
       const updates = response?.updates || [];
 
       if (updates.length > 0) {
         // Decrypt updates
         const decryptedUpdates = await Promise.all(
-          updates.map(async item => ({
+          updates.map(async (item) => ({
             ...item,
             title: await this.storage.crypto.decrypt(item.title),
             url: await this.storage.crypto.decrypt(item.url),
-            syncStatus: 'synced'
-          }))
+            syncStatus: "synced",
+          })),
         );
 
         // Merge with local history
@@ -207,9 +232,9 @@ export class HistoryManager {
       }
 
       // Update last sync time
-      await this.db.setSyncMeta('lastSync', Date.now());
+      await this.db.setSyncMeta("lastSync", Date.now());
     } catch (error) {
-      console.error('History sync failed:', error);
+      console.error("History sync failed:", error);
       // Don't rethrow - we want to keep running even if sync fails
     } finally {
       this.syncInProgress = false;
@@ -220,14 +245,14 @@ export class HistoryManager {
     // Get all local history
     const localHistory = await this.db.getAllHistory();
     const urlMap = new Map();
-    
+
     // Index local items
-    localHistory.forEach(item => {
+    localHistory.forEach((item) => {
       urlMap.set(item.url, item);
     });
 
     // Find new or updated items
-    const toAdd = remoteItems.filter(item => {
+    const toAdd = remoteItems.filter((item) => {
       const local = urlMap.get(item.url);
       return !local || local.lastVisitTime < item.lastVisitTime;
     });

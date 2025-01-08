@@ -1,5 +1,5 @@
-const TOKEN_KEY = 'chronicle_auth_token';
-const GROUP_ID_KEY = 'chronicle_group_id';
+const TOKEN_KEY = "chronicle_auth_token";
+const GROUP_ID_KEY = "chronicle_group_id";
 
 export class AuthService {
   static getToken() {
@@ -26,7 +26,7 @@ export class AuthService {
 
     try {
       // Check if token is expired
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      const payload = JSON.parse(atob(token.split(".")[1]));
       return payload.exp > Date.now() / 1000;
     } catch (error) {
       return false;

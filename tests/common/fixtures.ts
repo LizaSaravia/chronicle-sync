@@ -1,4 +1,4 @@
-import { test as base } from '@playwright/test';
+import { test as base } from "@playwright/test";
 
 // Create a test fixture that includes the mocked chrome API
 export const test = base.extend({

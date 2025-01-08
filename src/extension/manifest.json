@@ -3,14 +3,8 @@
   "name": "Chronicle Sync",
   "version": "1.1.0",
   "description": "A secure, cross-platform browser extension for syncing browsing data",
-  "permissions": [
-    "tabs",
-    "storage",
-    "history"
-  ],
-  "host_permissions": [
-    "https://*.chroniclesync.xyz/*"
-  ],
+  "permissions": ["tabs", "storage", "history"],
+  "host_permissions": ["https://*.chroniclesync.xyz/*"],
   "background": {
     "service_worker": "background.js"
   },

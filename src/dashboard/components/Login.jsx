@@ -1,30 +1,37 @@
-import { Box, Button, Container, Paper, TextField, Typography } from '@mui/material';
-import React, { useState } from 'react';
+import {
+  Box,
+  Button,
+  Container,
+  Paper,
+  TextField,
+  Typography,
+} from "@mui/material";
+import React, { useState } from "react";
 
-import { getApiBase } from '../config';
-import { AuthService } from '../services/auth';
+import { getApiBase } from "../config";
+import { AuthService } from "../services/auth";
 
 export function Login({ onLogin }) {
-  const [groupId, setGroupId] = useState('');
-  const [error, setError] = useState('');
+  const [groupId, setGroupId] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
       const response = await fetch(`${getApiBase()}/api/auth/verify-group`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ groupId }),
       });
 
       if (!response.ok) {
-        throw new Error('Invalid sync group ID');
+        throw new Error("Invalid sync group ID");
       }
 
       const { token } = await response.json();
@@ -48,8 +55,9 @@ export function Login({ onLogin }) {
             Enter your sync group ID to view browsing history
           </Typography>
           <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-            You can find your sync group ID in the Chronicle Sync extension's options page.
-            Click the extension icon, then click "Options" to view it.
+            You can find your sync group ID in the Chronicle Sync extension's
+            options page. Click the extension icon, then click "Options" to view
+            it.
           </Typography>
           <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
             <TextField
@@ -68,7 +76,7 @@ export function Login({ onLogin }) {
               variant="contained"
               disabled={loading || !groupId}
             >
-              {loading ? 'Verifying...' : 'View History'}
+              {loading ? "Verifying..." : "View History"}
             </Button>
           </Box>
         </Paper>

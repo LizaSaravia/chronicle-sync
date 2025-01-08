@@ -39,9 +39,6 @@ jobs:
             exit 1
           fi
 
-      - name: Install Wrangler
-        run: npm install -g wrangler@latest
-
       - name: Generate Wrangler Config
         run: |
           chmod +x ./scripts/generate-wrangler-config.sh
@@ -65,9 +62,6 @@ jobs:
           # Deploy worker
           echo "Deploying worker to staging..."
           wrangler deploy --config wrangler.worker.toml --env staging dist/worker/worker.js
-
-          # Install node-fetch for health check
-          npm install --no-save node-fetch
 
           # Verify deployment
           echo "Verifying staging deployment..."
@@ -106,9 +100,6 @@ jobs:
             exit 1
           fi
 
-      - name: Install Wrangler
-        run: npm install -g wrangler@latest
-
       - name: Generate Wrangler Config
         run: |
           chmod +x ./scripts/generate-wrangler-config.sh
@@ -132,9 +123,6 @@ jobs:
           # Deploy worker
           echo "Deploying worker to production..."
           wrangler deploy --config wrangler.worker.toml --env production dist/worker/worker.js
-
-          # Install node-fetch for health check
-          npm install --no-save node-fetch
 
           # Verify deployment
           echo "Verifying production deployment..."

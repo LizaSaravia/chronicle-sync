@@ -1,7 +1,7 @@
 const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type'
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
 };
 
 let metrics = {
@@ -10,21 +10,21 @@ let metrics = {
     createGroup: 0,
     getUpdates: 0,
     health: 0,
-    metrics: 0
+    metrics: 0,
   },
   errors: {
     sync: 0,
     createGroup: 0,
     getUpdates: 0,
     health: 0,
-    metrics: 0
-  }
+    metrics: 0,
+  },
 };
 
 async function handleHealthCheck(env) {
   try {
     metrics.apiCalls.health++;
-    
+
     // Test D1
     const dbTest = await env.DB.prepare("SELECT 1").first();
     if (!dbTest) throw new Error("D1 test failed");
@@ -44,31 +44,37 @@ async function handleHealthCheck(env) {
     if (r2Value !== "test") throw new Error("R2 test failed");
     await env.SYNC_BUCKET.delete(testFile);
 
-    return new Response(JSON.stringify({
-      status: "healthy",
-      services: {
-        d1: "ok",
-        kv: "ok",
-        r2: "ok"
-      }
-    }), {
-      headers: {
-        ...CORS_HEADERS,
-        'Content-Type': 'application/json'
-      }
-    });
+    return new Response(
+      JSON.stringify({
+        status: "healthy",
+        services: {
+          d1: "ok",
+          kv: "ok",
+          r2: "ok",
+        },
+      }),
+      {
+        headers: {
+          ...CORS_HEADERS,
+          "Content-Type": "application/json",
+        },
+      },
+    );
   } catch (error) {
     metrics.errors.health++;
-    return new Response(JSON.stringify({
-      status: "unhealthy",
-      error: error.message
-    }), {
-      status: 500,
-      headers: {
-        ...CORS_HEADERS,
-        'Content-Type': 'application/json'
-      }
-    });
+    return new Response(
+      JSON.stringify({
+        status: "unhealthy",
+        error: error.message,
+      }),
+      {
+        status: 500,
+        headers: {
+          ...CORS_HEADERS,
+          "Content-Type": "application/json",
+        },
+      },
+    );
   }
 }
 
@@ -77,8 +83,8 @@ async function handleMetrics() {
   return new Response(JSON.stringify(metrics), {
     headers: {
       ...CORS_HEADERS,
-      'Content-Type': 'application/json'
-    }
+      "Content-Type": "application/json",
+    },
   });
 }
 
@@ -95,7 +101,7 @@ async function handleSync(request, env) {
       metrics.errors.sync++;
       return new Response(JSON.stringify({ error: "Group not found" }), {
         status: 404,
-        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
       });
     }
 
@@ -104,15 +110,17 @@ async function handleSync(request, env) {
     await env.SYNC_KV.put(`${groupId}:latest`, timestamp.toString());
 
     await env.DB.prepare(
-      "INSERT OR REPLACE INTO devices (id, sync_group_id, last_sync) VALUES (?, ?, ?)"
-    ).bind(deviceId, groupId, timestamp).run();
+      "INSERT OR REPLACE INTO devices (id, sync_group_id, last_sync) VALUES (?, ?, ?)",
+    )
+      .bind(deviceId, groupId, timestamp)
+      .run();
 
-    await env.DB.prepare(
-      "UPDATE sync_groups SET last_updated = ? WHERE id = ?"
-    ).bind(timestamp, groupId).run();
+    await env.DB.prepare("UPDATE sync_groups SET last_updated = ? WHERE id = ?")
+      .bind(timestamp, groupId)
+      .run();
 
     return new Response(JSON.stringify({ success: true }), {
-      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
+      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
     });
   } catch (error) {
     metrics.errors.sync++;
@@ -128,15 +136,19 @@ async function handleCreateGroup(request, env) {
     const timestamp = Date.now();
 
     await env.DB.prepare(
-      "INSERT INTO sync_groups (id, created_at, last_updated) VALUES (?, ?, ?)"
-    ).bind(groupId, timestamp, timestamp).run();
+      "INSERT INTO sync_groups (id, created_at, last_updated) VALUES (?, ?, ?)",
+    )
+      .bind(groupId, timestamp, timestamp)
+      .run();
 
     await env.DB.prepare(
-      "INSERT INTO devices (id, sync_group_id, last_sync) VALUES (?, ?, ?)"
-    ).bind(deviceId, groupId, timestamp).run();
+      "INSERT INTO devices (id, sync_group_id, last_sync) VALUES (?, ?, ?)",
+    )
+      .bind(deviceId, groupId, timestamp)
+      .run();
 
     return new Response(JSON.stringify({ groupId }), {
-      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
+      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
     });
   } catch (error) {
     metrics.errors.createGroup++;
@@ -148,38 +160,43 @@ async function handleGetUpdates(request, env) {
   try {
     metrics.apiCalls.getUpdates++;
     const url = new URL(request.url);
-    const groupId = url.searchParams.get('groupId');
-    const deviceId = url.searchParams.get('deviceId');
-    const since = parseInt(url.searchParams.get('since') || '0');
+    const groupId = url.searchParams.get("groupId");
+    const deviceId = url.searchParams.get("deviceId");
+    const since = parseInt(url.searchParams.get("since") || "0");
 
     const device = await env.DB.prepare(
-      "SELECT * FROM devices WHERE id = ? AND sync_group_id = ?"
-    ).bind(deviceId, groupId).first();
+      "SELECT * FROM devices WHERE id = ? AND sync_group_id = ?",
+    )
+      .bind(deviceId, groupId)
+      .first();
 
     if (!device) {
       metrics.errors.getUpdates++;
-      return new Response(JSON.stringify({ error: "Device not found in group" }), {
-        status: 404,
-        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
-      });
+      return new Response(
+        JSON.stringify({ error: "Device not found in group" }),
+        {
+          status: 404,
+          headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        },
+      );
     }
 
     const latestTimestamp = await env.SYNC_KV.get(`${groupId}:latest`);
     if (!latestTimestamp || parseInt(latestTimestamp) <= since) {
       return new Response(JSON.stringify({ updates: [] }), {
-        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
       });
     }
 
     const objects = await env.SYNC_BUCKET.list({
       prefix: `${groupId}/`,
-      cursor: `${groupId}/${since}`
+      cursor: `${groupId}/${since}`,
     });
 
     const updates = [];
     for (const obj of objects.objects) {
       try {
-        const timestamp = parseInt(obj.key.split('/')[1]);
+        const timestamp = parseInt(obj.key.split("/")[1]);
         if (isNaN(timestamp) || timestamp <= since) continue;
 
         const response = await env.SYNC_BUCKET.get(obj.key);
@@ -190,7 +207,9 @@ async function handleGetUpdates(request, env) {
 
         const text = await response.text();
         if (!text) {
-          console.error(`Failed to get text from object ${obj.key}: Text was empty`);
+          console.error(
+            `Failed to get text from object ${obj.key}: Text was empty`,
+          );
           continue;
         }
 
@@ -198,7 +217,10 @@ async function handleGetUpdates(request, env) {
           const data = JSON.parse(text);
           updates.push(data);
         } catch (parseError) {
-          console.error(`Failed to parse JSON from object ${obj.key}:`, parseError);
+          console.error(
+            `Failed to parse JSON from object ${obj.key}:`,
+            parseError,
+          );
           continue;
         }
       } catch (error) {
@@ -208,7 +230,7 @@ async function handleGetUpdates(request, env) {
     }
 
     return new Response(JSON.stringify({ updates }), {
-      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
+      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
     });
   } catch (error) {
     metrics.errors.getUpdates++;
@@ -239,7 +261,7 @@ async function initializeDatabase(env) {
 
 export default {
   async fetch(request, env) {
-    if (request.method === 'OPTIONS') {
+    if (request.method === "OPTIONS") {
       return new Response(null, { headers: CORS_HEADERS });
     }
 
@@ -250,36 +272,36 @@ export default {
       const url = new URL(request.url);
       const path = url.pathname;
 
-      if (path === '/health') {
+      if (path === "/health") {
         return await handleHealthCheck(env);
       }
 
-      if (path === '/metrics') {
+      if (path === "/metrics") {
         return await handleMetrics();
       }
 
-      if (request.method === 'POST') {
-        if (path === '/api/sync') {
+      if (request.method === "POST") {
+        if (path === "/api/sync") {
           return await handleSync(request, env);
         }
-        if (path === '/api/create-group') {
+        if (path === "/api/create-group") {
           return await handleCreateGroup(request, env);
         }
       }
 
-      if (request.method === 'GET' && path === '/api/get-updates') {
+      if (request.method === "GET" && path === "/api/get-updates") {
         return await handleGetUpdates(request, env);
       }
 
-      return new Response('Not Found', {
+      return new Response("Not Found", {
         status: 404,
-        headers: CORS_HEADERS
+        headers: CORS_HEADERS,
       });
     } catch (error) {
       return new Response(JSON.stringify({ error: error.message }), {
         status: 500,
-        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
       });
     }
-  }
+  },
 };

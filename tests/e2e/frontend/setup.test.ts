@@ -1,13 +1,13 @@
-import { expect } from '@playwright/test';
+import { expect } from "@playwright/test";
 
-import { test } from '../../common/fixtures';
+import { test } from "../../common/fixtures";
 
-test.describe('Initial setup', () => {
-  test('should pass basic test', async () => {
+test.describe("Initial setup", () => {
+  test("should pass basic test", async () => {
     expect(true).toBe(true);
   });
 
-  test('should have Chrome extension APIs mocked', async ({ page }) => {
+  test("should have Chrome extension APIs mocked", async ({ page }) => {
     // Set up a basic page for testing Chrome API
     await page.setContent(`
       <html>
@@ -22,19 +22,20 @@ test.describe('Initial setup', () => {
     `);
 
     // Use the screenshot directory from environment variable
-    const screenshotDir = process.env.SCREENSHOT_DIR || 'test-results/screenshots';
+    const screenshotDir =
+      process.env.SCREENSHOT_DIR || "test-results/screenshots";
 
     // Take screenshot before checking API
     await page.screenshot({ path: `${screenshotDir}/chrome-api-before.png` });
 
     // Verify Chrome API is available
     const hasChromeApi = await page.evaluate(() => {
-      const status = document.getElementById('status');
+      const status = document.getElementById("status");
       if (window.chrome) {
-        status.textContent = 'Chrome API is available';
+        status.textContent = "Chrome API is available";
         return true;
       } else {
-        status.textContent = 'Chrome API is not available';
+        status.textContent = "Chrome API is not available";
         return false;
       }
     });

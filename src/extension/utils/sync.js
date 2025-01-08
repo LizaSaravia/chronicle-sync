@@ -1,4 +1,4 @@
-import { reportError } from './error-reporting.js';
+import { reportError } from "./error-reporting.js";
 
 export class SyncManager {
   constructor(historyManager) {
@@ -12,7 +12,7 @@ export class SyncManager {
   setupOnlineListener() {
     // Set up callback for when we come back online
     this.history.api.setOnlineCallback(() => {
-      console.log('Back online, attempting sync');
+      console.log("Back online, attempting sync");
       this.onBackOnline();
     });
   }
@@ -31,8 +31,8 @@ export class SyncManager {
       // If successful, restart normal sync interval
       this.restartSyncInterval();
     } catch (error) {
-      console.error('Failed to sync after coming back online:', error);
-      await reportError(error, { context: 'sync_after_online' });
+      console.error("Failed to sync after coming back online:", error);
+      await reportError(error, { context: "sync_after_online" });
       // Schedule a retry
       this.scheduleRetry();
     }
@@ -43,9 +43,12 @@ export class SyncManager {
       clearTimeout(this.retryTimeout);
     }
 
-    this.retryTimeout = setTimeout(() => {
-      this.onBackOnline();
-    }, delayMinutes * 60 * 1000);
+    this.retryTimeout = setTimeout(
+      () => {
+        this.onBackOnline();
+      },
+      delayMinutes * 60 * 1000,
+    );
   }
 
   restartSyncInterval() {
@@ -53,19 +56,22 @@ export class SyncManager {
       clearInterval(this.syncInterval);
     }
 
-    this.syncInterval = setInterval(() => {
-      this.history.syncHistory().catch(async error => {
-        console.error('Periodic sync failed:', error);
-        await reportError(error, { context: 'periodic_sync' });
-        if (error.message.includes('Offline')) {
-          // Don't retry - we'll sync when we're back online
-          if (this.syncInterval) {
-            clearInterval(this.syncInterval);
-            this.syncInterval = null;
+    this.syncInterval = setInterval(
+      () => {
+        this.history.syncHistory().catch(async (error) => {
+          console.error("Periodic sync failed:", error);
+          await reportError(error, { context: "periodic_sync" });
+          if (error.message.includes("Offline")) {
+            // Don't retry - we'll sync when we're back online
+            if (this.syncInterval) {
+              clearInterval(this.syncInterval);
+              this.syncInterval = null;
+            }
           }
-        }
-      });
-    }, this.intervalMinutes * 60 * 1000);
+        });
+      },
+      this.intervalMinutes * 60 * 1000,
+    );
   }
 
   async startSync(intervalMinutes = 5) {
@@ -74,15 +80,15 @@ export class SyncManager {
     try {
       // Initial sync
       await this.history.syncHistory();
-      
+
       // Set up periodic sync
       this.restartSyncInterval();
     } catch (error) {
-      console.error('Failed to start sync:', error);
-      await reportError(error, { context: 'start_sync' });
-      if (error.message.includes('Offline')) {
+      console.error("Failed to start sync:", error);
+      await reportError(error, { context: "start_sync" });
+      if (error.message.includes("Offline")) {
         // We'll sync when we're back online
-        console.log('Offline, waiting for connection');
+        console.log("Offline, waiting for connection");
       } else {
         // Schedule a retry for other errors
         this.scheduleRetry();
@@ -102,15 +108,20 @@ export class SyncManager {
   }
 
   async forceSync() {
-    const context = typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : globalThis;
+    const context =
+      typeof window !== "undefined"
+        ? window
+        : typeof self !== "undefined"
+          ? self
+          : globalThis;
     if (!context.navigator.onLine) {
-      throw new Error('Cannot sync while offline');
+      throw new Error("Cannot sync while offline");
     }
 
     try {
       await this.history.syncHistory();
     } catch (error) {
-      console.error('Force sync failed:', error);
+      console.error("Force sync failed:", error);
       throw error; // Propagate error to UI
     }
   }

@@ -11,11 +11,13 @@ The e2e tests use Playwright to test the extension in a real browser environment
 To run the e2e tests in headless mode:
 
 1. Build the extension:
+
 ```bash
 npm run build
 ```
 
 2. Run the tests:
+
 ```bash
 npm run test:e2e
 ```

@@ -20,13 +20,13 @@
     "build:dashboard": "webpack --config webpack.dashboard.js --mode production",
     "dev": "webpack --mode development --watch",
     "dev:dashboard": "webpack serve --config webpack.dashboard.js",
+    "dev:worker": "pnpm exec wrangler dev --local",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
-    "deploy:staging": "wrangler publish --env staging",
-    "deploy:prod": "wrangler publish --env production",
-    "deploy:dashboard:staging": "wrangler pages publish dist/dashboard --project-name chronicle-sync-dashboard --branch staging",
-    "deploy:dashboard:prod": "wrangler pages publish dist/dashboard --project-name chronicle-sync-dashboard --branch main",
-    "dev:worker": "wrangler dev --local"
+    "deploy:staging": "pnpm exec wrangler deploy --config wrangler.worker.toml --env staging dist/worker/worker.js",
+    "deploy:prod": "pnpm exec wrangler deploy --config wrangler.worker.toml --env production dist/worker/worker.js",
+    "deploy:dashboard:staging": "pnpm exec wrangler pages publish dist/dashboard --project-name chronicle-sync-dashboard --branch staging",
+    "deploy:dashboard:prod": "pnpm exec wrangler pages publish dist/dashboard --project-name chronicle-sync-dashboard --branch main"
   },
   "keywords": [
     "browser-extension",
@@ -59,6 +59,7 @@
     "eslint-plugin-react": "^7.33.2",
     "html-webpack-plugin": "^5.6.0",
     "http-server": "^14.1.1",
+    "jsdom": "^25.0.1",
     "node-fetch": "^3.3.2",
     "prettier": "^3.1.1",
     "style-loader": "^4.0.0",

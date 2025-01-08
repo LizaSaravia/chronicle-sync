@@ -1,4 +1,4 @@
-import { chromium } from '@playwright/test';
+import { chromium } from "@playwright/test";
 
 // Mock chrome API
 declare global {

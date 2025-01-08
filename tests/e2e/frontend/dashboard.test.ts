@@ -1,9 +1,9 @@
-import { expect } from '@playwright/test';
+import { expect } from "@playwright/test";
 
-import { test } from '../../common/fixtures';
+import { test } from "../../common/fixtures";
 
-test.describe('Dashboard E2E Tests', () => {
-  test('should load dashboard', async ({ page }) => {
+test.describe("Dashboard E2E Tests", () => {
+  test("should load dashboard", async ({ page }) => {
     // Create a mock dashboard page
     await page.setContent(`
       <html>
@@ -27,17 +27,18 @@ test.describe('Dashboard E2E Tests', () => {
     `);
 
     // Use the screenshot directory from environment variable
-    const screenshotDir = process.env.SCREENSHOT_DIR || 'test-results/screenshots';
+    const screenshotDir =
+      process.env.SCREENSHOT_DIR || "test-results/screenshots";
 
     // Take screenshot of initial dashboard state
     await page.screenshot({ path: `${screenshotDir}/dashboard-initial.png` });
 
     // Verify dashboard content
-    await expect(page.getByText('Chronicle Sync Dashboard')).toBeVisible();
-    await expect(page.getByText('Example Entry')).toBeVisible();
-    await expect(page.getByText('https://example.com')).toBeVisible();
-    await expect(page.getByText('Device: test-device')).toBeVisible();
-    await expect(page.getByText('OS: test-os')).toBeVisible();
+    await expect(page.getByText("Chronicle Sync Dashboard")).toBeVisible();
+    await expect(page.getByText("Example Entry")).toBeVisible();
+    await expect(page.getByText("https://example.com")).toBeVisible();
+    await expect(page.getByText("Device: test-device")).toBeVisible();
+    await expect(page.getByText("OS: test-os")).toBeVisible();
 
     // Take screenshot after verifying content
     await page.screenshot({ path: `${screenshotDir}/dashboard-verified.png` });

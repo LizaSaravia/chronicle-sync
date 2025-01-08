@@ -12,16 +12,19 @@ The Chronicle Sync Dashboard is a web interface for managing browsing history ac
 ## Development
 
 1. Install dependencies:
+
    ```bash
    npm install
    ```
 
 2. Start development server:
+
    ```bash
    npm run dev:dashboard
    ```
 
 3. Run tests:
+
    ```bash
    # Unit tests
    npm test
@@ -35,6 +38,7 @@ The Chronicle Sync Dashboard is a web interface for managing browsing history ac
 The dashboard is deployed using Cloudflare Pages:
 
 1. Staging:
+
    ```bash
    npm run deploy:dashboard:staging
    ```
@@ -54,12 +58,15 @@ The dashboard is deployed using Cloudflare Pages:
 ## API Endpoints
 
 ### GET /api/history
+
 Returns all history entries sorted by visit time.
 
 ### POST /api/history
+
 Creates a new history entry.
 
 Request body:
+
 ```json
 {
   "url": "https://example.com",
@@ -72,9 +79,11 @@ Request body:
 ```
 
 ### PUT /api/history/:id
+
 Updates an existing history entry.
 
 Request body:
+
 ```json
 {
   "url": "https://example.com",
