@@ -12,7 +12,9 @@ tests/screenshots/
 docs/screenshots/
 .turbo/
 
-# Generated wrangler config files
+# Wrangler files
+.wrangler/tmp/
+.wrangler/state/
 wrangler.toml
 wrangler.dashboard.toml
 wrangler.worker.toml
