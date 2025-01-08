@@ -1,7 +1,4 @@
-const API_BASE = {
-  staging: "https://api-staging.chroniclesync.xyz",
-  production: "https://api.chroniclesync.xyz",
-};
+import { API_BASE } from "../shared/constants.js";
 
 export const getApiBase = () => {
   // Check if we're on staging (Cloudflare Pages preview deployment or custom domain)

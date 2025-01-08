@@ -1,7 +1,4 @@
-const API_BASE = {
-  staging: "https://api-staging.chroniclesync.xyz",
-  production: "https://api.chroniclesync.xyz",
-};
+import { API_BASE, API_PATHS } from "../../shared/constants.js";
 
 export class ApiClient {
   constructor(
@@ -36,7 +33,7 @@ export class ApiClient {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // Increased timeout
 
-        const healthUrl = `${this.baseUrl}/api/health`;
+        const healthUrl = `${this.baseUrl}${API_PATHS.health}`;
         console.log("Checking health endpoint:", healthUrl);
 
         const response = await fetch(healthUrl, {
@@ -116,7 +113,7 @@ export class ApiClient {
     }
 
     try {
-      const response = await fetch(`${this.baseUrl}/api/create-group`, {
+      const response = await fetch(`${this.baseUrl}${API_PATHS.createGroup}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -147,7 +144,7 @@ export class ApiClient {
 
     try {
       const timestamp = Date.now();
-      const response = await fetch(`${this.baseUrl}/api/sync`, {
+      const response = await fetch(`${this.baseUrl}${API_PATHS.sync}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -189,7 +186,7 @@ export class ApiClient {
       });
 
       const response = await fetch(
-        `${this.baseUrl}/api/get-updates?${params.toString()}`,
+        `${this.baseUrl}${API_PATHS.getUpdates}?${params.toString()}`,
         {
           headers: {
             Origin: chrome.runtime.getURL(""),

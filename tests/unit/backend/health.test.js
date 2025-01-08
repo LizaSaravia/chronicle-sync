@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import worker from "../../../src/backend/index.js";
+import { API_BASE, API_PATHS } from "../../../src/shared/constants.js";
+
+const TEST_URL = API_BASE.production;
 
 describe("Health endpoint", () => {
   let env;
@@ -27,7 +30,7 @@ describe("Health endpoint", () => {
   });
 
   it("should return 200 and healthy status when all services are working", async () => {
-    const request = new Request("https://api.chroniclesync.xyz/health");
+    const request = new Request(`${TEST_URL}${API_PATHS.health}`);
     const response = await worker.fetch(request, env);
     const data = await response.json();
 
@@ -55,7 +58,7 @@ describe("Health endpoint", () => {
       throw new Error("DB connection failed");
     });
 
-    const request = new Request("https://api.chroniclesync.xyz/health");
+    const request = new Request(`${TEST_URL}${API_PATHS.health}`);
     const response = await worker.fetch(request, env);
     const data = await response.json();
 
@@ -77,7 +80,7 @@ describe("Health endpoint", () => {
       throw new Error("KV write failed");
     });
 
-    const request = new Request("https://api.chroniclesync.xyz/health");
+    const request = new Request(`${TEST_URL}${API_PATHS.health}`);
     const response = await worker.fetch(request, env);
     const data = await response.json();
 
@@ -99,7 +102,7 @@ describe("Health endpoint", () => {
       throw new Error("R2 write failed");
     });
 
-    const request = new Request("https://api.chroniclesync.xyz/health");
+    const request = new Request(`${TEST_URL}${API_PATHS.health}`);
     const response = await worker.fetch(request, env);
     const data = await response.json();
 
@@ -124,7 +127,7 @@ describe("Health endpoint", () => {
       throw new Error("KV write failed");
     });
 
-    const request = new Request("https://api.chroniclesync.xyz/health");
+    const request = new Request(`${TEST_URL}${API_PATHS.health}`);
     const response = await worker.fetch(request, env);
     const data = await response.json();
 
