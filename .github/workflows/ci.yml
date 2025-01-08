@@ -189,8 +189,9 @@ jobs:
       - name: Package Extension
         if: success() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
         run: |
-          pushd dist
-          zip -r ../chronicle-sync.zip *
+          # Only package the extension files, not dashboard or worker
+          pushd dist/extension
+          zip -r ../../chronicle-sync.zip *
           popd
 
       - name: Configure GitHub Pages
