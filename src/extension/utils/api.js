@@ -13,17 +13,28 @@ export class ApiClient {
     // Use globalThis to work in both window and service worker contexts
     const context = typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : globalThis;
     
-    const checkConnection = async () => {
+    const checkConnection = async (retryCount = 0) => {
       try {
+        // First check navigator.onLine
+        if (!context.navigator.onLine) {
+          console.log('Browser reports offline');
+          this.isOnline = false;
+          return;
+        }
+
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // Increased timeout
         
-        const response = await fetch(`${this.baseUrl}/api/health`, {
+        const healthUrl = `${this.baseUrl}/api/health`;
+        console.log('Checking health endpoint:', healthUrl);
+        
+        const response = await fetch(healthUrl, {
           method: 'HEAD',
           signal: controller.signal,
           headers: { 
             'Origin': chrome.runtime.getURL(''),
-            'X-Extension-ID': chrome.runtime.id
+            'X-Extension-ID': chrome.runtime.id,
+            'Cache-Control': 'no-cache'
           },
           credentials: 'include'
         });
@@ -31,14 +42,32 @@ export class ApiClient {
         clearTimeout(timeoutId);
         this.isOnline = response.ok;
         if (this.isOnline) {
+          console.log('Connection check successful for', this.baseUrl);
           this.onOnline?.();
+        } else {
+          console.warn('Health check failed for', this.baseUrl, '- Status:', response.status, response.statusText);
+          if (retryCount < 3) {
+            console.log(`Retrying connection check (${retryCount + 1}/3)...`);
+            setTimeout(() => checkConnection(retryCount + 1), 2000);
+          }
         }
       } catch (error) {
+        const errorDetails = {
+          message: error.message,
+          type: error.name,
+          url: this.baseUrl,
+          timeout: error.name === 'AbortError' ? '10s' : 'N/A'
+        };
+        console.warn('Connection check failed:', errorDetails);
         this.isOnline = false;
+        if (retryCount < 3) {
+          console.log(`Retrying connection check (${retryCount + 1}/3) for ${this.baseUrl}...`);
+          setTimeout(() => checkConnection(retryCount + 1), 2000);
+        }
       }
     };
 
-    // Initial check
+    // Initial check with retries
     checkConnection();
     
     // Listen for online/offline events
@@ -53,8 +82,8 @@ export class ApiClient {
         this.isOnline = false;
       });
       
-      // Periodic check every 30 seconds
-      setInterval(checkConnection, 30000);
+      // Periodic check every minute
+      setInterval(() => checkConnection(), 60000);
     }
   }
 

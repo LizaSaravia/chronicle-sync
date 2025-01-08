@@ -19,18 +19,50 @@ export class HistoryManager {
       await this.db.setSyncMeta('deviceId', deviceId);
     }
 
-    // Get or create sync group (only if online)
+    // Get or create sync group
     let groupId = await this.db.getSyncMeta('groupId');
     const context = typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : globalThis;
-    if (!groupId && context.navigator.onLine) {
-      try {
-        const { groupId: newGroupId } = await this.api.createSyncGroup(deviceId);
-        groupId = newGroupId;
-        await this.db.setSyncMeta('groupId', groupId);
-        // Save to chrome.storage.local for the options page
-        await chrome.storage.local.set({ groupId });
-      } catch (error) {
-        console.warn('Failed to create sync group, will retry later:', error);
+    if (!groupId) {
+      // Only try to create sync group if online
+      if (context.navigator.onLine) {
+        try {
+          // Set up retry mechanism for creating sync group
+          const maxRetries = 3;
+          let retryCount = 0;
+          let lastError = null;
+
+          while (retryCount < maxRetries) {
+            try {
+              const { groupId: newGroupId } = await this.api.createSyncGroup(deviceId);
+              groupId = newGroupId;
+              await this.db.setSyncMeta('groupId', groupId);
+              // Save to chrome.storage.local for the options page
+              await chrome.storage.local.set({ groupId });
+              console.log('Successfully created sync group:', groupId);
+              break;
+            } catch (error) {
+              lastError = error;
+              retryCount++;
+              if (error.message.includes('Offline')) {
+                console.warn(`Offline while creating sync group (attempt ${retryCount}/${maxRetries})`);
+                // Wait longer between retries if we're offline
+                await new Promise(resolve => setTimeout(resolve, 5000));
+              } else {
+                console.warn(`Failed to create sync group (attempt ${retryCount}/${maxRetries}):`, error);
+                await new Promise(resolve => setTimeout(resolve, 2000));
+              }
+            }
+          }
+
+          if (!groupId) {
+            console.error('Failed to create sync group after retries:', lastError);
+            throw lastError;
+          }
+        } catch (error) {
+          console.warn('Failed to create sync group, will retry during next sync:', error);
+        }
+      } else {
+        console.log('Offline - skipping sync group creation');
       }
     }
 
@@ -152,11 +184,12 @@ export class HistoryManager {
       }
 
       // Get updates from other devices
-      const { updates } = await this.api.getUpdates(
+      const response = await this.api.getUpdates(
         this.groupId,
         this.deviceId,
         lastSync
       );
+      const updates = response?.updates || [];
 
       if (updates.length > 0) {
         // Decrypt updates
