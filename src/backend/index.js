@@ -19,9 +19,12 @@ export default {
       const url = new URL(request.url);
       const path = url.pathname;
 
-      // Initialize database if needed
-      await env.DB.exec(SCHEMA);
-      await env.DB.exec(DEVICES_SCHEMA);
+      // Skip schema initialization for health check
+      if (path !== "/health") {
+        // Initialize database if needed
+        await env.DB.exec(SCHEMA);
+        await env.DB.exec(DEVICES_SCHEMA);
+      }
 
       if (request.method === "POST") {
         if (path === "/api/sync") {
@@ -176,7 +179,7 @@ async function checkHealth(env) {
 
   try {
     // Check D1 Database
-    await env.DB.prepare("SELECT 1").first();
+    await env.DB.prepare("SELECT 1 AS health_check").first();
     services.db = "ok";
   } catch (error) {
     services.db = "error";

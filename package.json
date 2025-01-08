@@ -21,6 +21,7 @@
     "dev": "webpack --mode development --watch",
     "dev:dashboard": "webpack serve --config webpack.dashboard.js",
     "dev:worker": "pnpm exec wrangler dev --local",
+    "dev:health": "node scripts/dev/check-health.js",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
     "deploy:staging": "pnpm exec wrangler deploy --config wrangler.worker.toml --env staging dist/worker/worker.js",

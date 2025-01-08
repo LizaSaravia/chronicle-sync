@@ -43,7 +43,7 @@ describe("Health endpoint", () => {
     });
 
     // Verify service checks were called
-    expect(env.DB.prepare).toHaveBeenCalledWith("SELECT 1");
+    expect(env.DB.prepare).toHaveBeenCalledWith("SELECT 1 AS health_check");
     expect(env.SYNC_KV.put).toHaveBeenCalledWith("health-check", "test");
     expect(env.SYNC_KV.delete).toHaveBeenCalledWith("health-check");
     expect(env.SYNC_BUCKET.put).toHaveBeenCalledWith("health-check", "test");
