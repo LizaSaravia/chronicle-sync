@@ -102,7 +102,8 @@ export class SyncManager {
   }
 
   async forceSync() {
-    if (!navigator.onLine) {
+    const context = typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : globalThis;
+    if (!context.navigator.onLine) {
       throw new Error('Cannot sync while offline');
     }
 

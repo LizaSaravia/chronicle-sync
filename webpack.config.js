@@ -1,3 +1,4 @@
+import { readFileSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -6,6 +7,10 @@ import webpack from 'webpack';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Read version from package.json
+const packageJson = JSON.parse(readFileSync('./package.json', 'utf8'));
+const version = packageJson.version;
 
 export default {
   mode: 'development',
@@ -49,11 +54,19 @@ export default {
     new webpack.ProvidePlugin({
       Buffer: ['buffer', 'Buffer'],
     }),
+    new webpack.DefinePlugin({
+      'process.env.VERSION': JSON.stringify(version)
+    }),
     new CopyPlugin({
       patterns: [
         { 
           from: './src/extension/manifest.json',
-          to: 'manifest.json'
+          to: 'manifest.json',
+          transform(content) {
+            const manifest = JSON.parse(content);
+            manifest.version = version;
+            return JSON.stringify(manifest, null, 2);
+          }
         },
         {
           from: './src/extension/popup.html',

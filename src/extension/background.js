@@ -15,7 +15,7 @@ async function importDependencies() {
   SyncManager = sync.SyncManager;
 }
 
-const VERSION = '1.0.0';
+import { VERSION } from './utils/version.js';
 let syncManager = null;
 
 // Initialize sync with password

@@ -21,7 +21,8 @@ export class HistoryManager {
 
     // Get or create sync group (only if online)
     let groupId = await this.db.getSyncMeta('groupId');
-    if (!groupId && navigator.onLine) {
+    const context = typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : globalThis;
+    if (!groupId && context.navigator.onLine) {
       try {
         const { groupId: newGroupId } = await this.api.createSyncGroup(deviceId);
         groupId = newGroupId;
@@ -101,7 +102,8 @@ export class HistoryManager {
 
 
   async attemptSync() {
-    if (!navigator.onLine) {
+    const context = typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : globalThis;
+    if (!context.navigator.onLine) {
       console.log('Offline, skipping sync');
       return;
     }
