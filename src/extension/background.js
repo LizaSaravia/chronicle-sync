@@ -1,23 +1,11 @@
-// Import logger statically since it's needed immediately
+// Import all dependencies statically
+import { ApiClient } from './utils/api.js';
+import { CryptoManager } from './utils/crypto.js';
+import { HistoryManager } from './utils/history.js';
 import { Logger } from './utils/logger.js';
+import { StorageManager } from './utils/storage.js';
+import { SyncManager } from './utils/sync.js';
 import { VERSION, GIT_HASH } from './utils/version.js';
-
-// Use dynamic imports for service worker compatibility
-let ApiClient, CryptoManager, HistoryManager, StorageManager, SyncManager;
-
-async function importDependencies() {
-  const api = await import('./utils/api.js');
-  const crypto = await import('./utils/crypto.js');
-  const history = await import('./utils/history.js');
-  const storage = await import('./utils/storage.js');
-  const sync = await import('./utils/sync.js');
-
-  ApiClient = api.ApiClient;
-  CryptoManager = crypto.CryptoManager;
-  HistoryManager = history.HistoryManager;
-  StorageManager = storage.StorageManager;
-  SyncManager = sync.SyncManager;
-}
 
 // Create logger instance
 const log = new Logger('Background');
@@ -25,7 +13,6 @@ let syncManager = null;
 
 // Initialize sync with password
 async function initializeSync(password, environment = 'production', customApiUrl = null) {
-  await importDependencies();
   log.info('Starting initialization', { environment });
   
   try {
@@ -122,7 +109,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (!syncManager) {
       log.warn('History request failed - sync not initialized');
       sendResponse({ success: false, error: 'Sync not initialized' });
-      return;
+      return true;
     }
     
     log.debug('Getting device history');
@@ -142,7 +129,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (!syncManager) {
       log.warn('Force sync failed - sync not initialized');
       sendResponse({ success: false, error: 'Sync not initialized' });
-      return;
+      return true;
     }
     
     log.info('Starting force sync');
