@@ -1,5 +1,5 @@
 name = "chronicle-sync-worker"
-main = "src/worker.py"
+main = "worker.py"
 compatibility_date = "2024-01-09"
 compatibility_flags = ["python_workers"]
 
@@ -9,10 +9,12 @@ ALLOWED_ORIGINS = "*"
 [[kv_namespaces]]
 binding = "SYNC_KV"
 id = "sync-kv-id"
+preview_id = "sync-kv-preview-id"
 
 [[r2_buckets]]
 binding = "STORAGE"
 bucket_name = "chronicle-sync-storage"
+preview_bucket_name = "chronicle-sync-storage-preview"
 
 [env.staging]
 name = "chronicle-sync-worker-staging"

@@ -22,5 +22,8 @@ fi
 # Create dist directory
 mkdir -p dist
 
+# Copy worker file to dist
+cp worker.py dist/
+
 # Verify worker can be built
 wrangler deploy --dry-run --outdir=dist
