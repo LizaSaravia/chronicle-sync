@@ -87,20 +87,31 @@ export class ApiClient {
     checkConnection();
 
     // Listen for online/offline events
+    // Register event handlers immediately during script evaluation
+    const onlineHandler = () => {
+      console.log("Network event: online");
+      checkConnection();
+    };
+    const offlineHandler = () => {
+      console.log("Network event: offline");
+      this.isOnline = false;
+    };
+
+    // Only add event listeners if the context supports them
     if (typeof context.addEventListener === "function") {
-      context.addEventListener("online", () => {
-        console.log("Network event: online");
-        checkConnection();
-      });
+      // Remove any existing listeners to avoid duplicates
+      if (typeof context.removeEventListener === "function") {
+        context.removeEventListener("online", onlineHandler);
+        context.removeEventListener("offline", offlineHandler);
+      }
 
-      context.addEventListener("offline", () => {
-        console.log("Network event: offline");
-        this.isOnline = false;
-      });
-
-      // Periodic check every minute
-      setInterval(() => checkConnection(), 60000);
+      // Add the event listeners
+      context.addEventListener("online", onlineHandler);
+      context.addEventListener("offline", offlineHandler);
     }
+
+    // Periodic check every minute
+    setInterval(() => checkConnection(), 60000);
   }
 
   setOnlineCallback(callback) {
