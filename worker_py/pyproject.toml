@@ -1,0 +1,61 @@
+[tool.poetry]
+name = "chronicle-sync-worker"
+version = "0.1.0"
+description = "Chronicle Sync Python Cloudflare Worker"
+authors = ["OpenHands <openhands@all-hands.dev>"]
+packages = [
+    { include = "src" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+cloudflare = "^2.19.2"
+fakeredis = {extras = ["json"], version = "^2.20.0"}
+pydantic = "^2.5.3"
+cryptography = "^41.0.7"
+aiohttp = "^3.9.1"
+python-dotenv = "^1.0.0"
+fastapi = "^0.109.0"
+uvicorn = "^0.25.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.3"
+pytest-asyncio = "^0.23.2"
+black = "^23.12.1"
+isort = "^5.13.2"
+flake8 = "^7.0.0"
+mypy = "^1.8.0"
+httpx = "^0.26.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 100
+target-version = ['py39']
+exclude = '''
+/(
+    \.venv
+  | \.git
+  | \.pytest_cache
+  | __pycache__
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+skip = [".venv", "__pycache__", ".pytest_cache"]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+exclude = [
+    '.venv',
+    '__pycache__',
+    '.pytest_cache',
+]

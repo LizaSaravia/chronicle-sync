@@ -22,9 +22,9 @@ env:
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 
 jobs:
-  test-and-build:
+  js-checks:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -43,6 +43,129 @@ jobs:
         run: |
           pnpm store prune
           pnpm install --frozen-lockfile
+
+      - name: Setup Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
+      - name: Run JavaScript linting
+        run: pnpm lint
+
+      - name: Run JavaScript unit tests
+        run: pnpm test:unit
+        env:
+          CI: true
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: js-test-artifacts
+          path: |
+            coverage/
+            tests/logs/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  python-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: worker_py
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+
+      - name: Configure Poetry
+        run: |
+          poetry config virtualenvs.in-project true
+
+      - name: Cache Poetry virtualenv
+        uses: actions/cache@v4
+        id: poetry-cache
+        with:
+          path: worker_py/.venv
+          key: ${{ runner.os }}-poetry-${{ hashFiles('worker_py/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
+      - name: Install dependencies
+        if: steps.poetry-cache.outputs.cache-hit != 'true'
+        run: poetry install
+
+      - name: Run Python linting
+        run: |
+          # Run black with config from pyproject.toml
+          poetry run black --check .
+          # Run isort with config from pyproject.toml
+          poetry run isort --check .
+          # Run flake8 with config from .flake8
+          poetry run flake8 .
+          # Run mypy with config from pyproject.toml
+          poetry run mypy src tests
+
+      - name: Run Python unit tests
+        run: poetry run pytest tests/ -v
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-test-artifacts
+          path: |
+            worker_py/.coverage
+            worker_py/htmlcov/
+            worker_py/.pytest_cache/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  e2e-and-deploy:
+    needs: [js-checks, python-checks]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9.15.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'pnpm'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+
+      - name: Install dependencies
+        run: |
+          pnpm store prune
+          pnpm install --frozen-lockfile
+          cd worker_py && poetry install
 
       - name: Setup Turbo cache
         uses: actions/cache@v4
@@ -124,25 +247,19 @@ jobs:
         if: steps.e2e_tests.outcome == 'failure'
         run: exit 1
 
-      - name: Build extension, worker and dashboard
+      - name: Build extension and worker
         if: success()
         run: |
           # Build extension and worker
           echo "Building extension and worker..."
           pnpm run build
           
-          # Build dashboard
-          echo "Building dashboard..."
-          pnpm run build:dashboard
-          
           # Verify builds succeeded
           echo "Verifying build outputs..."
           echo "Extension files:"
           ls -la dist/extension/
           echo "Worker files:"
-          ls -la dist/worker/
-          echo "Dashboard files:"
-          ls -la dist/dashboard/
+          ls -la worker_py/
         env:
           NODE_ENV: production
 

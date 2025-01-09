@@ -1,8 +1,7 @@
+# Node
 node_modules/
 dist/
-dist-worker/
 coverage/
-cypress.env.json
 .env
 .env.*
 *.log
@@ -12,19 +11,40 @@ tests/screenshots/
 docs/screenshots/
 .turbo/
 
-# Wrangler files
-.wrangler/tmp/
-.wrangler/state/
-wrangler.toml
-wrangler.dashboard.toml
-wrangler.worker.toml
-wrangler.pages.toml
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+.env/
+*.egg-info/
+.eggs/
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
 
-# Playwright
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build
+build/
+*.tsbuildinfo
+
+# Wrangler
+.wrangler/
+wrangler.toml
+!worker_py/wrangler.toml
+
+# Test results
 test-results/
 playwright-report/
 playwright/.cache/
 /test-results/
 /playwright-report/
 /blob-report/
-/playwright/.cache/.wrangler/
+/playwright/.cache/
