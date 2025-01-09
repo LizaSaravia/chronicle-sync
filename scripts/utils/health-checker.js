@@ -35,10 +35,17 @@ export async function checkHealth(url) {
   }
 }
 
-export async function verifyWithRetries(url, maxAttempts = 3, waitMs = 5000, initialWaitMs = 0) {
+export async function verifyWithRetries(
+  url,
+  maxAttempts = 3,
+  waitMs = 5000,
+  initialWaitMs = 0,
+) {
   // Optional initial wait (useful for deployments)
   if (initialWaitMs > 0) {
-    console.log(`Waiting ${initialWaitMs/1000} seconds before first check...`);
+    console.log(
+      `Waiting ${initialWaitMs / 1000} seconds before first check...`,
+    );
     await new Promise((resolve) => setTimeout(resolve, initialWaitMs));
   }
 
@@ -49,11 +56,15 @@ export async function verifyWithRetries(url, maxAttempts = 3, waitMs = 5000, ini
       return true;
     }
     if (i < maxAttempts - 1) {
-      console.log(`\nRetrying in ${waitMs/1000} seconds... (attempt ${i + 2}/${maxAttempts})`);
+      console.log(
+        `\nRetrying in ${waitMs / 1000} seconds... (attempt ${i + 2}/${maxAttempts})`,
+      );
       await new Promise((resolve) => setTimeout(resolve, waitMs));
     }
   }
 
-  console.error(`\n💥 Health verification failed after ${maxAttempts} attempts`);
+  console.error(
+    `\n💥 Health verification failed after ${maxAttempts} attempts`,
+  );
   return false;
 }

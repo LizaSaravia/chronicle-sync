@@ -5,6 +5,7 @@ Chronicle Sync uses Discord webhooks for error reporting. The webhook URL is sto
 ## Setting up the Discord Webhook
 
 1. Create a Discord webhook in your server:
+
    - Go to Server Settings > Integrations > Webhooks
    - Click "New Webhook"
    - Name it "Chronicle Sync Error Reports"
@@ -26,6 +27,7 @@ wrangler secret put DISCORD_WEBHOOK_URL --env production
 ## How Error Reporting Works
 
 1. When an error occurs in the extension, it checks if error reporting is enabled:
+
    - Enabled by default in staging/beta
    - Disabled by default in production (user must opt-in)
 

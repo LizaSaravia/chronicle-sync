@@ -231,7 +231,9 @@ async function reportError(request, env) {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to send error to Discord: ${await response.text()}`);
+      throw new Error(
+        `Failed to send error to Discord: ${await response.text()}`,
+      );
     }
 
     return new Response(JSON.stringify({ success: true }), {
@@ -239,13 +241,10 @@ async function reportError(request, env) {
     });
   } catch (error) {
     console.error("Error reporting failed:", error);
-    return new Response(
-      JSON.stringify({ error: "Failed to report error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
-    );
+    return new Response(JSON.stringify({ error: "Failed to report error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 }
 
@@ -284,7 +283,9 @@ async function checkHealth(env) {
     errors.push(`R2 error: ${error.message}`);
   }
 
-  const allServicesOk = Object.values(services).every((status) => status === "ok");
+  const allServicesOk = Object.values(services).every(
+    (status) => status === "ok",
+  );
   const response = {
     status: allServicesOk ? "healthy" : "unhealthy",
     services,

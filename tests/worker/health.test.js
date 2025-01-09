@@ -1,7 +1,6 @@
 import { API_BASE, API_PATHS } from "../../src/shared/constants.js";
 
 describe("Worker Health Check", () => {
-
   async function checkHealth(url) {
     const response = await fetch(`${url}${API_PATHS.health}`);
     const data = await response.json();

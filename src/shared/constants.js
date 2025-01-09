@@ -33,6 +33,9 @@ export function getFullUrl(path, environment) {
 }
 
 // This function is no longer needed since we're using a proxy endpoint
-export function getErrorReportingUrl(service, environment = process.env.NODE_ENV || "development") {
+export function getErrorReportingUrl(
+  service,
+  environment = process.env.NODE_ENV || "development",
+) {
   return `${getApiUrl(environment)}${ERROR_REPORTING_PATHS.reportError}`;
 }

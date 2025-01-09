@@ -107,105 +107,83 @@ export class ApiClient {
     this.onOnline = callback;
   }
 
-  async createSyncGroup(deviceId) {
+  /**
+   * Makes an API request with standardized error handling and offline checks
+   * @param {string} endpoint - The API endpoint to call
+   * @param {Object} options - Fetch options and additional configuration
+   * @param {string} options.operation - Description of the operation for error messages
+   * @param {Object} [options.params] - URL parameters to append
+   * @returns {Promise<any>} The parsed JSON response
+   */
+  async makeRequest(endpoint, options = {}) {
+    const { operation, params, ...fetchOptions } = options;
+
     if (!this.isOnline) {
-      throw new Error("Offline: Cannot create sync group");
+      throw new Error(`Offline: Cannot ${operation}`);
     }
 
     try {
-      const response = await fetch(`${this.baseUrl}${API_PATHS.createGroup}`, {
-        method: "POST",
+      const url = new URL(`${this.baseUrl}${endpoint}`);
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          url.searchParams.append(key, value.toString());
+        });
+      }
+
+      const response = await fetch(url.toString(), {
         headers: {
           "Content-Type": "application/json",
           Origin: chrome.runtime.getURL(""),
           "X-Extension-ID": chrome.runtime.id,
+          ...fetchOptions.headers,
         },
         credentials: "include",
-        body: JSON.stringify({ deviceId }),
+        ...fetchOptions,
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to create sync group: ${response.statusText}`);
+        throw new Error(`Failed to ${operation}: ${response.statusText}`);
       }
 
       return await response.json();
     } catch (error) {
       if (!this.isOnline || error.message.includes("Failed to fetch")) {
-        throw new Error("Offline: Cannot create sync group");
+        throw new Error(`Offline: Cannot ${operation}`);
       }
       throw error;
     }
+  }
+
+  async createSyncGroup(deviceId) {
+    return this.makeRequest(API_PATHS.createGroup, {
+      method: "POST",
+      body: JSON.stringify({ deviceId }),
+      operation: "create sync group",
+    });
   }
 
   async syncData(groupId, deviceId, data) {
-    if (!this.isOnline) {
-      throw new Error("Offline: Cannot sync data");
-    }
-
-    try {
-      const timestamp = Date.now();
-      const response = await fetch(`${this.baseUrl}${API_PATHS.sync}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Origin: chrome.runtime.getURL(""),
-          "X-Extension-ID": chrome.runtime.id,
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          groupId,
-          deviceId,
-          data,
-          timestamp,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to sync data: ${response.statusText}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      if (!this.isOnline || error.message.includes("Failed to fetch")) {
-        throw new Error("Offline: Cannot sync data");
-      }
-      throw error;
-    }
+    const timestamp = Date.now();
+    return this.makeRequest(API_PATHS.sync, {
+      method: "POST",
+      body: JSON.stringify({
+        groupId,
+        deviceId,
+        data,
+        timestamp,
+      }),
+      operation: "sync data",
+    });
   }
 
   async getUpdates(groupId, deviceId, since) {
-    if (!this.isOnline) {
-      throw new Error("Offline: Cannot get updates");
-    }
-
-    try {
-      const params = new URLSearchParams({
+    return this.makeRequest(API_PATHS.getUpdates, {
+      operation: "get updates",
+      params: {
         groupId,
         deviceId,
-        since: since.toString(),
-      });
-
-      const response = await fetch(
-        `${this.baseUrl}${API_PATHS.getUpdates}?${params.toString()}`,
-        {
-          headers: {
-            Origin: chrome.runtime.getURL(""),
-            "X-Extension-ID": chrome.runtime.id,
-          },
-          credentials: "include",
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error(`Failed to get updates: ${response.statusText}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      if (!this.isOnline || error.message.includes("Failed to fetch")) {
-        throw new Error("Offline: Cannot get updates");
-      }
-      throw error;
-    }
+        since,
+      },
+    });
   }
 }

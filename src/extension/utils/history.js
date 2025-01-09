@@ -54,21 +54,28 @@ export class HistoryManager {
             } catch (error) {
               lastError = error;
               retryCount++;
-              
+
               if (error.message.includes("Offline")) {
                 console.warn(
                   `Offline while creating sync group (attempt ${retryCount}/${maxRetries})`,
                 );
                 // Exponential backoff for offline errors
-                const backoffTime = Math.min(1000 * Math.pow(2, retryCount), 30000);
-                await new Promise((resolve) => setTimeout(resolve, backoffTime));
+                const backoffTime = Math.min(
+                  1000 * Math.pow(2, retryCount),
+                  30000,
+                );
+                await new Promise((resolve) =>
+                  setTimeout(resolve, backoffTime),
+                );
               } else {
                 console.warn(
                   `Failed to create sync group (attempt ${retryCount}/${maxRetries}):`,
                   error,
                 );
                 // Linear backoff for other errors
-                await new Promise((resolve) => setTimeout(resolve, 2000 * retryCount));
+                await new Promise((resolve) =>
+                  setTimeout(resolve, 2000 * retryCount),
+                );
               }
 
               // If this is the last retry, throw the error

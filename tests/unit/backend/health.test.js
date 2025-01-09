@@ -140,10 +140,7 @@ describe("Health endpoint", () => {
         r2: "ok",
       },
       environment: "test",
-      errors: [
-        "DB error: DB connection failed",
-        "KV error: KV write failed",
-      ],
+      errors: ["DB error: DB connection failed", "KV error: KV write failed"],
     });
   });
 });

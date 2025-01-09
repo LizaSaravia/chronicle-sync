@@ -34,47 +34,50 @@ export async function reportError(error, context = {}) {
   try {
     const storage = await chrome.storage.local.get(["environment"]);
     const baseUrl = getApiUrl(storage.environment);
-    const response = await fetch(`${baseUrl}${ERROR_REPORTING_PATHS.reportError}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const response = await fetch(
+      `${baseUrl}${ERROR_REPORTING_PATHS.reportError}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content: "🐛 Chronicle Sync Error Report",
+          embeds: [
+            {
+              title: "Error Details",
+              description: `\`\`\`\n${error.message}\n\`\`\``,
+              fields: [
+                {
+                  name: "Stack Trace",
+                  value: `\`\`\`\n${error.stack?.substring(0, 1000) || "No stack trace"}\n\`\`\``,
+                },
+                {
+                  name: "Context",
+                  value: `\`\`\`json\n${JSON.stringify(context, null, 2)}\n\`\`\``,
+                },
+                {
+                  name: "Runtime Context",
+                  value: errorDetails.runtime,
+                  inline: true,
+                },
+                {
+                  name: "Extension Version",
+                  value: errorDetails.extensionVersion,
+                  inline: true,
+                },
+                {
+                  name: "Timestamp",
+                  value: errorDetails.timestamp,
+                  inline: true,
+                },
+              ],
+              color: 0xff0000,
+            },
+          ],
+        }),
       },
-      body: JSON.stringify({
-        content: "🐛 Chronicle Sync Error Report",
-        embeds: [
-          {
-            title: "Error Details",
-            description: `\`\`\`\n${error.message}\n\`\`\``,
-            fields: [
-              {
-                name: "Stack Trace",
-                value: `\`\`\`\n${error.stack?.substring(0, 1000) || "No stack trace"}\n\`\`\``,
-              },
-              {
-                name: "Context",
-                value: `\`\`\`json\n${JSON.stringify(context, null, 2)}\n\`\`\``,
-              },
-              {
-                name: "Runtime Context",
-                value: errorDetails.runtime,
-                inline: true,
-              },
-              {
-                name: "Extension Version",
-                value: errorDetails.extensionVersion,
-                inline: true,
-              },
-              {
-                name: "Timestamp",
-                value: errorDetails.timestamp,
-                inline: true,
-              },
-            ],
-            color: 0xff0000,
-          },
-        ],
-      }),
-    });
+    );
 
     if (!response.ok) {
       console.error("Failed to send error to Discord:", await response.text());
