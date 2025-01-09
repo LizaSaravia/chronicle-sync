@@ -47,9 +47,13 @@ describe("HistoryManager in disconnected mode", () => {
     mockStorageManager = {
       crypto: {
         encrypt: vi.fn((text) => Promise.resolve(`encrypted:${text}`)),
-        decrypt: vi.fn((text) =>
-          Promise.resolve(text.replace("encrypted:", "")),
-        ),
+        decrypt: vi.fn((text) => {
+          // Only try to decrypt if it has the encrypted: prefix
+          if (text.startsWith("encrypted:")) {
+            return Promise.resolve(text.replace("encrypted:", ""));
+          }
+          return Promise.resolve(text);
+        }),
       },
     };
 
@@ -69,6 +73,7 @@ describe("HistoryManager in disconnected mode", () => {
       getAllHistory: vi.fn(() => Promise.resolve([])),
       setSyncMeta: vi.fn(() => Promise.resolve()),
       getSyncMeta: vi.fn(() => Promise.resolve(null)),
+      deleteHistory: vi.fn(() => Promise.resolve()),
     };
 
     // Mock the LocalDB constructor
@@ -90,6 +95,9 @@ describe("HistoryManager in disconnected mode", () => {
     );
     vi.spyOn(LocalDB.prototype, "getSyncMeta").mockImplementation(
       mockDB.getSyncMeta,
+    );
+    vi.spyOn(LocalDB.prototype, "deleteHistory").mockImplementation(
+      mockDB.deleteHistory,
     );
 
     // Create history manager
@@ -289,11 +297,13 @@ describe("HistoryManager in disconnected mode", () => {
         url: "https://example1.com",
         title: "Example 1 Updated",
         lastVisitTime: 3000,
+        syncStatus: "synced",
       }),
       expect.objectContaining({
         url: "https://example3.com",
         title: "Example 3",
         lastVisitTime: 4000,
+        syncStatus: "synced",
       }),
     ]);
   });

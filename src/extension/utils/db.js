@@ -137,6 +137,21 @@ export class LocalDB {
     });
   }
 
+  async deleteHistory(id) {
+    const db = await this.init();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction("history", "readwrite");
+      const store = tx.objectStore("history");
+      const request = store.delete(id);
+
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
   async setSyncMeta(key, value) {
     const db = await this.init();
     return new Promise((resolve, reject) => {

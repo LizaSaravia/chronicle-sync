@@ -31,13 +31,18 @@ export class HistoryManager {
       // Only try to create sync group if online
       if (context.navigator.onLine) {
         try {
-          // Set up retry mechanism for creating sync group
-          const maxRetries = 3;
+          // Set up retry mechanism for creating sync group with exponential backoff
+          const maxRetries = 5; // Increased from 3 to 5
           let retryCount = 0;
           let lastError = null;
 
           while (retryCount < maxRetries) {
             try {
+              // Check online status before each attempt
+              if (!context.navigator.onLine) {
+                throw new Error("Offline: Cannot create sync group");
+              }
+
               const { groupId: newGroupId } =
                 await this.api.createSyncGroup(deviceId);
               groupId = newGroupId;
@@ -49,37 +54,51 @@ export class HistoryManager {
             } catch (error) {
               lastError = error;
               retryCount++;
+              
               if (error.message.includes("Offline")) {
                 console.warn(
                   `Offline while creating sync group (attempt ${retryCount}/${maxRetries})`,
                 );
-                // Wait longer between retries if we're offline
-                await new Promise((resolve) => setTimeout(resolve, 5000));
+                // Exponential backoff for offline errors
+                const backoffTime = Math.min(1000 * Math.pow(2, retryCount), 30000);
+                await new Promise((resolve) => setTimeout(resolve, backoffTime));
               } else {
                 console.warn(
                   `Failed to create sync group (attempt ${retryCount}/${maxRetries}):`,
                   error,
                 );
-                await new Promise((resolve) => setTimeout(resolve, 2000));
+                // Linear backoff for other errors
+                await new Promise((resolve) => setTimeout(resolve, 2000 * retryCount));
+              }
+
+              // If this is the last retry, throw the error
+              if (retryCount === maxRetries) {
+                console.error(
+                  "Failed to create sync group after all retries:",
+                  lastError,
+                );
+                throw lastError;
               }
             }
-          }
-
-          if (!groupId) {
-            console.error(
-              "Failed to create sync group after retries:",
-              lastError,
-            );
-            throw lastError;
           }
         } catch (error) {
           console.warn(
             "Failed to create sync group, will retry during next sync:",
             error,
           );
+          // Store the error to help with debugging
+          await this.db.setSyncMeta("lastSyncError", {
+            message: error.message,
+            timestamp: Date.now(),
+          });
         }
       } else {
         console.log("Offline - skipping sync group creation");
+        // Store offline status
+        await this.db.setSyncMeta("lastSyncError", {
+          message: "Offline - skipped sync group creation",
+          timestamp: Date.now(),
+        });
       }
     }
 
@@ -251,14 +270,41 @@ export class HistoryManager {
       urlMap.set(item.url, item);
     });
 
-    // Find new or updated items
-    const toAdd = remoteItems.filter((item) => {
+    // Find new or updated items and handle duplicates
+    const toAdd = [];
+    for (const item of remoteItems) {
       const local = urlMap.get(item.url);
-      return !local || local.lastVisitTime < item.lastVisitTime;
-    });
+      if (!local || local.lastVisitTime < item.lastVisitTime) {
+        try {
+          // Try to delete any existing entry first to avoid constraint errors
+          if (local) {
+            await this.db.deleteHistory(local.id);
+          }
+          toAdd.push(item);
+        } catch (error) {
+          console.warn("Failed to delete existing history item:", error);
+          // Continue with other items even if one fails
+        }
+      }
+    }
 
-    if (toAdd.length > 0) {
-      await this.db.addHistory(toAdd);
+    // Add items in smaller batches to reduce the chance of conflicts
+    const batchSize = 50;
+    for (let i = 0; i < toAdd.length; i += batchSize) {
+      const batch = toAdd.slice(i, i + batchSize);
+      try {
+        await this.db.addHistory(batch);
+      } catch (error) {
+        console.error("Failed to add history batch:", error);
+        // Try adding items one by one as fallback
+        for (const item of batch) {
+          try {
+            await this.db.addHistory([item]);
+          } catch (innerError) {
+            console.error("Failed to add individual history item:", innerError);
+          }
+        }
+      }
     }
   }
 
